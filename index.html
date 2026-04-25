@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOOMFLIX | Cinema Elite - Stream Movies & TV Shows Online</title>
+    <meta name="description" content="BOOMFLIX - Your ultimate destination for streaming movies and TV shows. Discover trending films, Nollywood hits, Bollywood cinema, and more. Watch online free.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+    
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://image.tmdb.org">
+    <link rel="preconnect" href="https://vidsrc.xyz">
+    <link rel="dns-prefetch" href="https://vidsrc.xyz">
+    <!-- Meta tag to upgrade insecure requests to HTTPS -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
+    <nav class="navbar" id="navbar">
+        <div class="nav-content">
+            <h1 class="logo" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" role="button" tabindex="0">
+                <span class="logo-white">BOOM</span><span class="logo-red">FLIX</span>
+            </h1>
+            <ul class="nav-links">
+                <li><a href="#" onclick="location.reload()">Home</a></li>
+                <li><a href="#main-content">TV Shows</a></li>
+                <li><a href="#main-content">Movies</a></li>
+                <li><a href="#main-content">New & Popular</a></li>
+            </ul>
+            <div class="nav-right">
+                <div class="search-box">
+                    <i data-lucide="search" size="18"></i>
+                    <input type="text" id="movie-search" placeholder="Search..." autocomplete="off">
+                </div>
+                <button class="premium-btn" onclick="openPremiumModal()">GET ELITE</button>
+                <div id="auth-status">
+                    <button class="login-btn" onclick="openAuthModal()">LOG IN</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero" id="hero-section">
+        <div class="hero-vignette"></div>
+        <div class="hero-bottom-shade"></div>
+        <div class="hero-content">
+            <h1 id="hero-title">BOOMFLIX Elite</h1>
+            <p id="hero-desc">Discover the world's best cinema. Stream trending movies and TV shows instantly.</p>
+            <div class="hero-btns">
+                <button class="btn btn-play" id="hero-play">
+                    <i data-lucide="play" fill="black"></i> 
+                    <span>Play Now</span>
+                </button>
+                <button class="btn btn-info">
+                    <i data-lucide="info"></i> 
+                    <span>More Info</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="content-container" id="main-content">
+        <div id="categories-wrapper">
+            <!-- Content injected by app.js -->
+        </div>
+    </main>
+
+    <!-- Auth Modal -->
+    <div class="auth-modal" id="auth-modal">
+        <div class="auth-card">
+            <button class="close-auth" onclick="closeAuthModal()">&times;</button>
+            <div id="login-form">
+                <h2>Sign In</h2>
+                <form onsubmit="handleAuth(event, 'login')">
+                    <div class="input-group">
+                        <input type="email" id="login-email" required placeholder="Email or phone number">
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="login-password" required placeholder="Password">
+                    </div>
+                    <button type="submit" class="cta-btn">Sign In</button>
+                    <div class="form-help">
+                        <label><input type="checkbox" checked> Remember me</label>
+                        <a href="#">Need help?</a>
+                    </div>
+                </form>
+                <div class="auth-switch">
+                    New to BOOMFLIX? <a href="#" onclick="toggleAuth('signup')">Sign up now.</a>
+                </div>
+            </div>
+
+            <div id="signup-form" style="display: none;">
+                <h2>Sign Up</h2>
+                <form onsubmit="handleAuth(event, 'signup')">
+                    <div class="input-group">
+                        <input type="text" id="signup-name" required placeholder="Full Name">
+                    </div>
+                    <div class="input-group">
+                        <input type="email" id="signup-email" required placeholder="Email address">
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="signup-password" required placeholder="Create Password">
+                    </div>
+                    <button type="submit" class="cta-btn">Get Started</button>
+                </form>
+                <div class="auth-switch">
+                    Already have an account? <a href="#" onclick="toggleAuth('login')">Sign in now.</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Modal -->
+    <div class="premium-modal" id="premium-modal">
+        <div class="premium-card">
+            <button class="close-premium" onclick="closePremiumModal()">&times;</button>
+            <div class="premium-header">
+                <span class="badge">LIMITED OFFER</span>
+                <h2>Upgrade to BOOMFLIX <span class="logo-red">ELITE</span></h2>
+                <p>The ultimate cinematic experience with no limits.</p>
+            </div>
+            <div class="premium-features">
+                <div class="feature">
+                    <i data-lucide="zap" class="icon-red"></i>
+                    <div>
+                        <h4>Ad-Free Experience</h4>
+                        <p>Watch your favorite movies without any interruptions.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <i data-lucide="monitor" class="icon-red"></i>
+                    <div>
+                        <h4>Ultra HD & 4K</h4>
+                        <p>Crystal clear quality for all movies and TV shows.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <i data-lucide="download" class="icon-red"></i>
+                    <div>
+                        <h4>Offline Viewing</h4>
+                        <p>Download content and watch anytime, anywhere.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="premium-pricing">
+                <div class="price-box selected">
+                    <span class="plan">Monthly</span>
+                    <span class="price">$9.99<span>/mo</span></span>
+                </div>
+                <div class="price-box">
+                    <span class="plan">Yearly</span>
+                    <span class="price">$79.99<span>/yr</span></span>
+                    <span class="save">SAVE 33%</span>
+                </div>
+            </div>
+            <button class="cta-btn" onclick="alert('Redirecting to secure payment...')">UPGRADE NOW</button>
+            <p class="footer-note">Cancel anytime. No hidden fees.</p>
+        </div>
+    </div>
+
+    <div class="player-modal" id="player-modal">
+        <div class="video-container">
+            <button class="close-modal" id="close-modal" onclick="closePlayerModal()">
+                <i data-lucide="x" size="32"></i>
+            </button>
+            <div class="player-loader" id="player-loader">
+                <div class="spinner"></div>
+            </div>
+            <iframe id="main-player" src="" frameborder="0" style="border:none; background: black;" allowfullscreen allow="autoplay; encrypted-media" onload="document.getElementById('player-loader').style.display='none'"></iframe>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>BOOMFLIX</h3>
+                <p>Premium streaming experience for global cinema enthusiasts.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Explore</h4>
+                <ul>
+                    <li><a href="#">Trending</a></li>
+                    <li><a href="#">New Releases</a></li>
+                    <li><a href="#">Top Rated</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Terms of Use</a></li>
+                    <li><a href="#">Privacy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 BOOMFLIX. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
