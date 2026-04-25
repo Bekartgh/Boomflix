@@ -4,27 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BOOMFLIX | Cinema Elite - Stream Movies & TV Shows Online</title>
-    <meta name="description" content="BOOMFLIX - Your ultimate destination for streaming movies and TV shows. Discover trending films, Nollywood hits, Bollywood cinema, and more. Watch online free.">
+    <meta name="description" content="BOOMFLIX - Your ultimate destination for streaming movies and TV shows. Discover trending films, Nollywood hits, Bollywood cinema, and more.">
     
-    <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
     
-    <!-- Preconnect for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://image.tmdb.org">
     <link rel="preconnect" href="https://vidsrc.xyz">
-    <link rel="dns-prefetch" href="https://vidsrc.xyz">
-    <!-- Meta tag to upgrade insecure requests to HTTPS -->
     <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     
-    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
-    
-    <!-- Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-    
-    <!-- Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -44,7 +35,7 @@
             <div class="nav-right">
                 <div class="search-box">
                     <i data-lucide="search" size="18"></i>
-                    <input type="text" id="movie-search" placeholder="Search..." autocomplete="off">
+                    <input type="text" id="movie-search" placeholder="Search... (press /)" autocomplete="off">
                 </div>
                 <button class="premium-btn" onclick="openPremiumModal()">GET ELITE</button>
                 <div id="auth-status">
@@ -54,11 +45,13 @@
         </div>
     </nav>
 
+    <!-- Hero -->
     <header class="hero" id="hero-section">
         <div class="hero-vignette"></div>
         <div class="hero-bottom-shade"></div>
         <div class="hero-content">
             <h1 id="hero-title">BOOMFLIX Elite</h1>
+            <div class="hero-badges" id="hero-badges"></div>
             <p id="hero-desc">Discover the world's best cinema. Stream trending movies and TV shows instantly.</p>
             <div class="hero-btns">
                 <button class="btn btn-play" id="hero-play">
@@ -69,57 +62,99 @@
                     <i data-lucide="info"></i> 
                     <span>More Info</span>
                 </button>
+                <div id="hero-actions"></div>
             </div>
         </div>
     </header>
 
     <main class="content-container" id="main-content">
-        <div id="categories-wrapper">
-            <!-- Content injected by app.js -->
+
+        <!-- Genre Filter Bar -->
+        <section class="filter-section">
+            <div class="genre-filter-bar" id="genre-filters"></div>
+            <div class="movie-grid" id="filter-grid"></div>
+        </section>
+
+        <!-- My List Row -->
+        <div class="category-row" id="watchlist-row" style="display:none;">
+            <h2>⭐ My List</h2>
+            <div class="movie-grid" id="watchlist-grid"></div>
         </div>
+
+        <!-- Dynamic Category Rows -->
+        <div id="categories-wrapper"></div>
     </main>
 
     <!-- Auth Modal -->
     <div class="auth-modal" id="auth-modal">
         <div class="auth-card">
-            <button class="close-auth" onclick="closeAuthModal()">&times;</button>
-            <div id="login-form">
-                <h2>Sign In</h2>
-                <form onsubmit="handleAuth(event, 'login')">
-                    <div class="input-group">
-                        <input type="email" id="login-email" required placeholder="Email or phone number">
-                    </div>
-                    <div class="input-group">
-                        <input type="password" id="login-password" required placeholder="Password">
-                    </div>
-                    <button type="submit" class="cta-btn">Sign In</button>
-                    <div class="form-help">
-                        <label><input type="checkbox" checked> Remember me</label>
-                        <a href="#">Need help?</a>
-                    </div>
-                </form>
-                <div class="auth-switch">
-                    New to BOOMFLIX? <a href="#" onclick="toggleAuth('signup')">Sign up now.</a>
+
+            <!-- Left: Brand Panel -->
+            <div class="auth-brand-panel">
+                <div class="auth-brand-logo">BOOM<span>FLIX</span></div>
+                <div class="auth-brand-tagline">
+                    <h3>Cinema without limits.</h3>
+                    <p>Stream Nollywood, Bollywood, Korean cinema, and global hits — all in one place.</p>
+                </div>
+                <div class="auth-brand-perks">
+                    <div class="auth-perk"><div class="auth-perk-dot"></div>Trending movies & TV, updated daily</div>
+                    <div class="auth-perk"><div class="auth-perk-dot"></div>Watchlist synced across devices</div>
+                    <div class="auth-perk"><div class="auth-perk-dot"></div>Upgrade to Elite for 4K & ad-free</div>
                 </div>
             </div>
 
-            <div id="signup-form" style="display: none;">
-                <h2>Sign Up</h2>
-                <form onsubmit="handleAuth(event, 'signup')">
-                    <div class="input-group">
-                        <input type="text" id="signup-name" required placeholder="Full Name">
+            <!-- Right: Form Panel -->
+            <div class="auth-form-panel">
+                <button class="close-auth" onclick="closeAuthModal()" title="Close">&times;</button>
+
+                <!-- Login Form -->
+                <div id="login-form">
+                    <h2>Welcome back</h2>
+                    <p class="auth-form-subtitle">Sign in to continue watching</p>
+                    <form onsubmit="handleAuth(event, 'login')">
+                        <div class="input-group">
+                            <label for="login-email">Email</label>
+                            <input type="email" id="login-email" required placeholder="you@example.com">
+                        </div>
+                        <div class="input-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" required placeholder="••••••••">
+                        </div>
+                        <div class="form-help">
+                            <label><input type="checkbox" checked> Remember me</label>
+                            <a href="#">Forgot password?</a>
+                        </div>
+                        <button type="submit" class="auth-submit-btn">Sign In →</button>
+                    </form>
+                    <div class="auth-switch">
+                        New here? <a href="#" onclick="toggleAuth('signup')">Create an account</a>
                     </div>
-                    <div class="input-group">
-                        <input type="email" id="signup-email" required placeholder="Email address">
-                    </div>
-                    <div class="input-group">
-                        <input type="password" id="signup-password" required placeholder="Create Password">
-                    </div>
-                    <button type="submit" class="cta-btn">Get Started</button>
-                </form>
-                <div class="auth-switch">
-                    Already have an account? <a href="#" onclick="toggleAuth('login')">Sign in now.</a>
                 </div>
+
+                <!-- Signup Form -->
+                <div id="signup-form" style="display: none;">
+                    <h2>Join BOOMFLIX</h2>
+                    <p class="auth-form-subtitle">Free to start, elite when you're ready</p>
+                    <form onsubmit="handleAuth(event, 'signup')">
+                        <div class="input-group">
+                            <label for="signup-name">Full Name</label>
+                            <input type="text" id="signup-name" required placeholder="Your name">
+                        </div>
+                        <div class="input-group">
+                            <label for="signup-email">Email</label>
+                            <input type="email" id="signup-email" required placeholder="you@example.com">
+                        </div>
+                        <div class="input-group">
+                            <label for="signup-password">Password</label>
+                            <input type="password" id="signup-password" required placeholder="Create a strong password">
+                        </div>
+                        <button type="submit" class="auth-submit-btn">Create Account →</button>
+                    </form>
+                    <div class="auth-switch">
+                        Already a member? <a href="#" onclick="toggleAuth('login')">Sign in</a>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -136,24 +171,15 @@
             <div class="premium-features">
                 <div class="feature">
                     <i data-lucide="zap" class="icon-red"></i>
-                    <div>
-                        <h4>Ad-Free Experience</h4>
-                        <p>Watch your favorite movies without any interruptions.</p>
-                    </div>
+                    <div><h4>Ad-Free Experience</h4><p>Watch your favorite movies without any interruptions.</p></div>
                 </div>
                 <div class="feature">
                     <i data-lucide="monitor" class="icon-red"></i>
-                    <div>
-                        <h4>Ultra HD & 4K</h4>
-                        <p>Crystal clear quality for all movies and TV shows.</p>
-                    </div>
+                    <div><h4>Ultra HD & 4K</h4><p>Crystal clear quality for all movies and TV shows.</p></div>
                 </div>
                 <div class="feature">
                     <i data-lucide="download" class="icon-red"></i>
-                    <div>
-                        <h4>Offline Viewing</h4>
-                        <p>Download content and watch anytime, anywhere.</p>
-                    </div>
+                    <div><h4>Offline Viewing</h4><p>Download content and watch anytime, anywhere.</p></div>
                 </div>
             </div>
             <div class="premium-pricing">
@@ -172,15 +198,51 @@
         </div>
     </div>
 
+    <!-- Player Modal -->
     <div class="player-modal" id="player-modal">
         <div class="video-container">
-            <button class="close-modal" id="close-modal" onclick="closePlayerModal()">
-                <i data-lucide="x" size="32"></i>
-            </button>
+
+            <!-- Top bar -->
+            <div class="player-topbar">
+                <span class="player-title" id="player-title"></span>
+                <div class="player-topbar-right">
+                    <span class="player-source-label" id="player-source-label"></span>
+                    <button class="close-modal" onclick="closePlayerModal()" aria-label="Close player">✕</button>
+                </div>
+            </div>
+
+            <!-- Source switcher -->
+            <div class="player-sources" id="player-sources">
+                <span class="source-label-text">Switch source:</span>
+                <button class="source-btn active" onclick="trySourceAt(0)">S1</button>
+                <button class="source-btn" onclick="trySourceAt(1)">S2</button>
+                <button class="source-btn" onclick="trySourceAt(2)">S3</button>
+                <button class="source-btn" onclick="trySourceAt(3)">S4</button>
+            </div>
+
+            <!-- Loader -->
             <div class="player-loader" id="player-loader">
                 <div class="spinner"></div>
+                <p class="loader-text">Loading player…</p>
             </div>
-            <iframe id="main-player" src="" frameborder="0" style="border:none; background: black;" allowfullscreen allow="autoplay; encrypted-media" onload="document.getElementById('player-loader').style.display='none'"></iframe>
+
+            <!-- Error / Fallback -->
+            <div class="player-error" id="player-error" style="display:none;">
+                <div class="player-error-icon">⚠️</div>
+                <h3>This source couldn't load</h3>
+                <p>Try a different source or come back later.</p>
+                <button class="player-retry-btn" onclick="tryNextSource()">Try Next Source →</button>
+                <div class="source-pills">
+                    <button class="source-pill" onclick="trySourceAt(0)">Source 1</button>
+                    <button class="source-pill" onclick="trySourceAt(1)">Source 2</button>
+                    <button class="source-pill" onclick="trySourceAt(2)">Source 3</button>
+                    <button class="source-pill" onclick="trySourceAt(3)">Source 4</button>
+                </div>
+            </div>
+
+            <iframe id="main-player" src="about:blank" frameborder="0"
+                allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"
+                style="border:none; background:#000;"></iframe>
         </div>
     </div>
 
@@ -208,14 +270,11 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2024 BOOMFLIX. All rights reserved.</p>
+            <p>&copy; 2025 BOOMFLIX. All rights reserved. &nbsp;·&nbsp; Press <kbd>/</kbd> to search</p>
         </div>
     </footer>
 
     <script src="app.js"></script>
-    <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-    </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>
