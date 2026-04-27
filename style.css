@@ -217,7 +217,43 @@ body {
 .watchlist-btn:hover { border-color: white; background: rgba(255,255,255,0.15); }
 .watchlist-btn.active { background: var(--primary); border-color: var(--primary); }
 
-/* Shimmer loading */
+/* ── Surprise Me Button ────────────────────────────────────────── */
+.btn-surprise {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: white;
+}
+.btn-surprise:hover { background: linear-gradient(135deg, #6d28d9, #9333ea); filter: brightness(1.1); }
+.btn-surprise:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── User Menu extras ──────────────────────────────────────────── */
+.user-avatar-initials {
+    width: 32px; height: 32px; border-radius: 4px; background: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 0.9rem;
+}
+.user-menu-name { padding: 10px 16px 2px; font-size: 0.85rem; font-weight: 700; color: white; }
+.user-menu-email { padding: 0 16px 10px; font-size: 0.72rem; color: var(--text-muted); }
+.user-menu-divider { border: none; border-top: 1px solid #333; margin: 0; }
+
+/* ── Interstitial Ad — DISABLED ───────────────────────────────── */
+.interstitial-ad { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PLAYER MODAL — MovieBox-style
+   Layout: [Left Ad] | [Top bar + Video + Bottom bar] | [Right Ad]
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Toast */
+#bf-toast {
+    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1e1e1e; border: 1px solid #444; color: white;
+    padding: 10px 22px; border-radius: 30px; font-size: 0.9rem;
+    z-index: 9999; opacity: 0; transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none; white-space: nowrap;
+}
+#bf-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Shimmer skeletons */
 .loading-shimmer {
     min-width: 200px; aspect-ratio: 16/9;
     background: linear-gradient(90deg, #222 25%, #2e2e2e 50%, #222 75%);
@@ -226,45 +262,345 @@ body {
 }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
-/* ── Toast ─────────────────────────────────────────────────────── */
-#toast {
-    position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: #1e1e1e; border: 1px solid #444; color: white;
-    padding: 10px 22px; border-radius: 30px; font-size: 0.9rem;
-    z-index: 9999; opacity: 0; transition: opacity 0.3s, transform 0.3s;
-    pointer-events: none; white-space: nowrap;
-}
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* ── Player Modal ──────────────────────────────────────────────── */
+/* ── Modal shell ───────────────────────────────────────────────── */
 .player-modal {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.9); z-index: 3000;
-    justify-content: center; align-items: center;
+    display: none;
+    position: fixed; inset: 0; z-index: 3000;
+    background: #000;
+    justify-content: center; align-items: stretch;
+    overflow: hidden;
 }
-.video-container {
-    width: 90%; max-width: 1100px; aspect-ratio: 16/9;
-    position: relative; background: #000;
-}
-#main-player { width: 100%; height: 100%; border: none; background: #000; }
-.close-modal {
-    position: absolute; top: -45px; right: 0;
-    background: transparent; border: none; color: white; cursor: pointer;
+.player-modal-backdrop {
+    position: absolute; inset: 0; z-index: 0;
 }
 
-/* ── Player Loader ─────────────────────────────────────────────── */
-.player-loader {
-    position: absolute; inset: 0;
-    display: flex; justify-content: center; align-items: center;
-    background: #000; z-index: 5;
+/* ── 2-column shell: video | right ad ─────────────────────────── */
+.player-shell {
+    position: relative; z-index: 1;
+    display: flex;
+    width: 100%; height: 100%;
+    align-items: stretch;
+    gap: 0;
 }
-.spinner {
-    width: 50px; height: 50px;
-    border: 5px solid rgba(229, 9, 20, 0.3);
+
+/* ── Hide left ad column (removed from HTML, keep rule safe) ───── */
+.pside-left { display: none !important; }
+
+/* ── Right ad column ───────────────────────────────────────────── */
+.pside {
+    width: 280px;
+    min-width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 64px 16px 16px;
+    height: 100%;
+    background: #0a0a0a;
+    border-left: 1px solid rgba(255,255,255,0.06);
+    overflow: hidden;
+}
+
+/* Single ad card */
+.pad-slot {
+    background: #111;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    position: relative;
+    width: 100%;
+    flex-shrink: 0;
+}
+.pad-slot--300x250 { height: 250px; width: 100%; max-width: 300px; }
+.pad-slot--160x600 { display: none; }   /* only one ad card shown */
+.pad-slot > ins,
+.pad-slot > div,
+.pad-slot > iframe,
+.pad-slot > script + * {
+    width: 100% !important; height: 100% !important;
+}
+.pad-label {
+    font-size: 0.55rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(255,255,255,0.18);
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+/* Skip Ad button — below the ad card */
+.skip-ad-btn {
+    margin-top: 12px;
+    background: rgba(20,20,20,0.95);
+    border: 1px solid rgba(255,255,255,0.22);
+    color: rgba(255,255,255,0.9);
+    font-size: 0.75rem; font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    align-self: flex-end;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+}
+.skip-ad-btn:disabled {
+    cursor: default;
+    color: rgba(255,255,255,0.38);
+    border-color: rgba(255,255,255,0.1);
+    background: rgba(20,20,20,0.7);
+}
+.skip-ad-btn:not(:disabled):hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.5);
+    color: white;
+}
+.skip-ad-countdown {
+    display: inline-block;
+    background: rgba(255,255,255,0.12);
+    border-radius: 3px;
+    padding: 1px 6px;
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 18px;
+    text-align: center;
+}
+
+/* ── Center column ─────────────────────────────────────────────── */
+.player-center {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+}
+
+/* ── Top bar ───────────────────────────────────────────────────── */
+.player-bar {
+    display: flex; align-items: center;
+    flex-shrink: 0;
+    padding: 10px 14px;
+    gap: 10px;
+}
+.player-bar--top {
+    background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
+    border-bottom: none;
+    justify-content: space-between;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    padding: 14px 18px;
+}
+.pbar-left {
+    display: flex; align-items: center; gap: 12px; min-width: 0;
+}
+.pbar-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.7);
+    border-radius: 6px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.18s; flex-shrink: 0;
+}
+.pbar-close {
+    width: 30px; height: 30px;
+}
+.pbar-close:hover { background: rgba(229,9,20,0.55); border-color: var(--primary); color: white; }
+.pbar-title-wrap {
+    display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden;
+}
+.pbar-title {
+    font-size: 0.92rem; font-weight: 800; color: white;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pbar-meta {
+    font-size: 0.72rem; color: rgba(255,255,255,0.38);
+    white-space: nowrap; flex-shrink: 0;
+}
+.pbar-right {
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.pbar-divider {
+    width: 1px; height: 18px; background: rgba(255,255,255,0.12);
+}
+.pbar-elite-badge {
+    background: linear-gradient(90deg, #FFD700, #FFA500);
+    color: #000; text-decoration: none; font-size: 0.68rem; font-weight: 900;
+    padding: 4px 10px; border-radius: 4px; letter-spacing: 0.06em;
+    transition: opacity 0.2s;
+}
+.pbar-elite-badge:hover { opacity: 0.85; }
+
+/* Source pills in top bar */
+.psource-wrap {
+    display: flex; align-items: center; gap: 4px;
+}
+.psource-label {
+    font-size: 0.68rem; color: rgba(255,255,255,0.35);
+    margin-right: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em;
+}
+.psrc-pill {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.65);
+    width: 28px; height: 26px;
+    border-radius: 5px; font-size: 0.75rem; font-weight: 700;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+}
+.psrc-pill:hover { background: rgba(255,255,255,0.15); color: white; }
+.psrc-pill.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+/* ── Video stage ───────────────────────────────────────────────── */
+.video-stage {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    background: #000;
+    overflow: hidden;
+}
+#main-player {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    border: none; background: #000; display: block;
+}
+
+/* Click-shield: sits above the iframe — blocks every tap/click so embed
+   ad click-jacks (window.open, top-navigation) can't fire.
+   JS removes this layer only when fullscreen is active. */
+.iframe-click-shield {
+    position: absolute; inset: 0; z-index: 5;
+    background: transparent;
+    pointer-events: all;   /* explicitly capture — never inherit 'none' */
+    cursor: default;
+    -webkit-tap-highlight-color: transparent;
+}
+.iframe-click-shield.shield-off {
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Loader */
+.vstage-loader {
+    position: absolute; inset: 0; z-index: 6;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: #050505; gap: 16px;
+}
+.vstage-spinner {
+    width: 48px; height: 48px;
+    border: 4px solid rgba(229,9,20,0.25);
     border-top-color: var(--primary);
-    border-radius: 50%; animation: spin 1s linear infinite;
+    border-radius: 50%;
+    animation: spin 0.85s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+.vstage-loader-text {
+    color: rgba(255,255,255,0.35); font-size: 0.82rem;
+}
+
+/* Error panel */
+.vstage-error {
+    position: absolute; inset: 0; z-index: 7; background: #060606;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px; text-align: center; padding: 24px;
+}
+.vstage-err-icon { font-size: 2.4rem; }
+.vstage-error h3 { font-size: 1.05rem; font-weight: 800; }
+.vstage-error p { color: rgba(255,255,255,0.4); font-size: 0.82rem; }
+.vstage-err-pills {
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 4px;
+}
+.vstage-err-pills button {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
+    color: white; padding: 5px 14px; border-radius: 5px;
+    font-size: 0.75rem; cursor: pointer; transition: all 0.15s;
+}
+.vstage-err-pills button:hover { background: rgba(255,255,255,0.18); }
+.vstage-next-btn {
+    margin-top: 6px; background: var(--primary); color: white;
+    border: none; padding: 9px 22px; border-radius: 6px;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.vstage-next-btn:hover { background: #c40812; }
+
+/* ticker removed */
+
+/* ── Bottom bar ────────────────────────────────────────────────── */
+.player-bar--bottom {
+    flex-direction: column;
+    background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, transparent 100%);
+    border-top: none;
+    padding: 20px 18px 14px;
+    gap: 10px;
+    align-items: stretch;
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    z-index: 10;
+}
+
+/* Episode row */
+.pepisode-row {
+    display: flex; align-items: center;
+    justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.pepisode-selects { display: flex; gap: 12px; align-items: flex-end; }
+.pselect-wrap { display: flex; flex-direction: column; gap: 4px; }
+.pselect-label {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.09em;
+    color: rgba(255,255,255,0.3); font-weight: 700;
+}
+.pselect {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: white; padding: 6px 28px 6px 10px; border-radius: 6px;
+    font-size: 0.82rem; cursor: pointer; outline: none;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.35)'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center;
+    min-width: 120px; transition: border-color 0.15s;
+}
+.pselect:focus { border-color: var(--primary); }
+.pselect option { background: #1a1a1a; }
+.pepisode-nav { display: flex; gap: 6px; }
+.pepnav-btn {
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+    color: rgba(255,255,255,0.7); padding: 6px 14px; border-radius: 6px;
+    font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s;
+}
+.pepnav-btn:hover { background: rgba(255,255,255,0.14); color: white; }
+.pepnav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Info row: rating / year / genre chips */
+.pinfo-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.pinfo-chip {
+    font-size: 0.72rem; font-weight: 600;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.65);
+    padding: 3px 10px; border-radius: 20px;
+}
+.pinfo-chip.rating { color: #FFD700; border-color: rgba(255,215,0,0.25); background: rgba(255,215,0,0.08); }
+.pinfo-chip.genre  { color: rgba(255,255,255,0.55); }
+
+/* ── Responsive: hide right ad column below 1100px ─────────────── */
+@media (max-width: 1100px) {
+    .pside { display: none; }
+}
+@media (max-width: 640px) {
+    .player-bar--top { padding: 8px 10px; }
+    .psource-wrap .psource-label { display: none; }
+    .pbar-elite-badge { display: none; }
+    .pepisode-selects { gap: 8px; }
+    .pselect { min-width: 90px; font-size: 0.78rem; }
+}
 
 /* ── Premium Modal ─────────────────────────────────────────────── */
 .premium-btn {

@@ -12,11 +12,27 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://image.tmdb.org">
     <link rel="preconnect" href="https://vidsrc.xyz">
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <!-- CSP: upgrade HTTP→HTTPS, block frames from navigating the top page,
+         and restrict where scripts/frames can load from.
+         frame-ancestors 'self' stops this page being framed by others.
+         navigate-to blocks any child frame redirecting the top-level browsing context. -->
+    <meta http-equiv="Content-Security-Policy" content="
+        upgrade-insecure-requests;
+        frame-ancestors 'self';
+        navigate-to 'none';
+    ">
+    <!-- Revoke navigation & popup permissions from all embedded frames -->
+    <meta http-equiv="Permissions-Policy" content="
+        interest-cohort=(),
+        browsing-topics=()
+    ">
     
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <link rel="stylesheet" href="style.css">
+
+
+    
 </head>
 <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -35,9 +51,9 @@
             <div class="nav-right">
                 <div class="search-box">
                     <i data-lucide="search" size="18"></i>
-                    <input type="text" id="movie-search" placeholder="Search... (press /)" autocomplete="off">
+                    <input type="text" id="movie-search" placeholder="Search Nollywood movies…" autocomplete="off">
                 </div>
-                <button class="premium-btn" onclick="openPremiumModal()">GET ELITE</button>
+                <button class="premium-btn" id="premium-nav-btn">GET ELITE</button>
                 <div id="auth-status">
                     <button class="login-btn" onclick="openAuthModal()">LOG IN</button>
                 </div>
@@ -58,11 +74,10 @@
                     <i data-lucide="play" fill="black"></i> 
                     <span>Play Now</span>
                 </button>
-                <button class="btn btn-info">
-                    <i data-lucide="info"></i> 
-                    <span>More Info</span>
+                <button class="btn btn-surprise" id="surprise-btn" onclick="surpriseMe()">
+                    <i data-lucide="shuffle"></i>
+                    <span>Surprise Me</span>
                 </button>
-                <div id="hero-actions"></div>
             </div>
         </div>
     </header>
@@ -159,92 +174,131 @@
         </div>
     </div>
 
-    <!-- Premium Modal -->
-    <div class="premium-modal" id="premium-modal">
-        <div class="premium-card">
-            <button class="close-premium" onclick="closePremiumModal()">&times;</button>
-            <div class="premium-header">
-                <span class="badge">LIMITED OFFER</span>
-                <h2>Upgrade to BOOMFLIX <span class="logo-red">ELITE</span></h2>
-                <p>The ultimate cinematic experience with no limits.</p>
-            </div>
-            <div class="premium-features">
-                <div class="feature">
-                    <i data-lucide="zap" class="icon-red"></i>
-                    <div><h4>Ad-Free Experience</h4><p>Watch your favorite movies without any interruptions.</p></div>
-                </div>
-                <div class="feature">
-                    <i data-lucide="monitor" class="icon-red"></i>
-                    <div><h4>Ultra HD & 4K</h4><p>Crystal clear quality for all movies and TV shows.</p></div>
-                </div>
-                <div class="feature">
-                    <i data-lucide="download" class="icon-red"></i>
-                    <div><h4>Offline Viewing</h4><p>Download content and watch anytime, anywhere.</p></div>
-                </div>
-            </div>
-            <div class="premium-pricing">
-                <div class="price-box selected">
-                    <span class="plan">Monthly</span>
-                    <span class="price">$9.99<span>/mo</span></span>
-                </div>
-                <div class="price-box">
-                    <span class="plan">Yearly</span>
-                    <span class="price">$79.99<span>/yr</span></span>
-                    <span class="save">SAVE 33%</span>
-                </div>
-            </div>
-            <button class="cta-btn" onclick="alert('Redirecting to secure payment...')">UPGRADE NOW</button>
-            <p class="footer-note">Cancel anytime. No hidden fees.</p>
-        </div>
-    </div>
 
-    <!-- Player Modal -->
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         PLAYER MODAL  —  MovieBox-style layout
+         [Left Ad 160px] | [Video + controls] | [Right Ad 160px]
+         ═══════════════════════════════════════════════════════ -->
     <div class="player-modal" id="player-modal">
-        <div class="video-container">
 
-            <!-- Top bar -->
-            <div class="player-topbar">
-                <span class="player-title" id="player-title"></span>
-                <div class="player-topbar-right">
-                    <span class="player-source-label" id="player-source-label"></span>
-                    <button class="close-modal" onclick="closePlayerModal()" aria-label="Close player">✕</button>
+        <!-- Backdrop: intentionally NO onclick — close only via the X button -->
+        <div class="player-modal-backdrop"></div>
+
+        <div class="player-shell">
+
+            <!-- ── CENTER COLUMN ── -->
+            <div class="player-center">
+
+                <!-- TOP BAR -->
+                <div class="player-bar player-bar--top">
+                    <div class="pbar-left">
+                        <button class="pbar-btn pbar-close" onclick="closePlayerModal()" title="Close">
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
+                        <div class="pbar-title-wrap">
+                            <span class="pbar-title" id="player-title">—</span>
+                            <span class="pbar-meta" id="player-meta"></span>
+                        </div>
+                    </div>
+                    <div class="pbar-right">
+                        <!-- Source switcher pills -->
+                        <div class="psource-wrap" id="psource-wrap">
+                            <span class="psource-label">Source</span>
+                            <button class="psrc-pill active" onclick="trySourceAt(0)">1</button>
+                            <button class="psrc-pill" onclick="trySourceAt(1)">2</button>
+                            <button class="psrc-pill" onclick="trySourceAt(2)">3</button>
+                            <button class="psrc-pill" onclick="trySourceAt(3)">4</button>
+                            <button class="psrc-pill" onclick="trySourceAt(4)">5</button>
+                        </div>
+                        <span class="pbar-divider"></span>
+                        <span class="pbar-elite-badge">⚡ ELITE</span>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Source switcher -->
-            <div class="player-sources" id="player-sources">
-                <span class="source-label-text">Switch source:</span>
-                <button class="source-btn active" onclick="trySourceAt(0)">S1</button>
-                <button class="source-btn" onclick="trySourceAt(1)">S2</button>
-                <button class="source-btn" onclick="trySourceAt(2)">S3</button>
-                <button class="source-btn" onclick="trySourceAt(3)">S4</button>
-            </div>
+                <!-- VIDEO STAGE -->
+                <div class="video-stage" id="video-stage">
 
-            <!-- Loader -->
-            <div class="player-loader" id="player-loader">
-                <div class="spinner"></div>
-                <p class="loader-text">Loading player…</p>
-            </div>
+                    <!-- Loader -->
+                    <div class="vstage-loader" id="player-loader">
+                        <div class="vstage-spinner"></div>
+                        <p class="vstage-loader-text">Loading stream…</p>
+                    </div>
 
-            <!-- Error / Fallback -->
-            <div class="player-error" id="player-error" style="display:none;">
-                <div class="player-error-icon">⚠️</div>
-                <h3>This source couldn't load</h3>
-                <p>Try a different source or come back later.</p>
-                <button class="player-retry-btn" onclick="tryNextSource()">Try Next Source →</button>
-                <div class="source-pills">
-                    <button class="source-pill" onclick="trySourceAt(0)">Source 1</button>
-                    <button class="source-pill" onclick="trySourceAt(1)">Source 2</button>
-                    <button class="source-pill" onclick="trySourceAt(2)">Source 3</button>
-                    <button class="source-pill" onclick="trySourceAt(3)">Source 4</button>
+                    <!-- Error state -->
+                    <div class="vstage-error" id="player-error" style="display:none;">
+                        <div class="vstage-err-icon">⚠️</div>
+                        <h3>Stream unavailable</h3>
+                        <p>This source couldn't load. Try another one.</p>
+                        <div class="vstage-err-pills">
+                            <button onclick="trySourceAt(0)">Source 1</button>
+                            <button onclick="trySourceAt(1)">Source 2</button>
+                            <button onclick="trySourceAt(2)">Source 3</button>
+                            <button onclick="trySourceAt(3)">Source 4</button>
+                            <button onclick="trySourceAt(4)">Source 5</button>
+                        </div>
+                        <button class="vstage-next-btn" onclick="tryNextSource()">Try Next Source →</button>
+                    </div>
+
+                    <!-- The player iframe.
+                         allow-popups: needed by embed players for internal video init.
+                         allow-popups-to-escape-sandbox: lets sub-iframes inside the embed work.
+                         allow-top-navigation-by-user-activation is intentionally OMITTED
+                         so the embed cannot redirect the parent page on tap. -->
+                    <iframe id="main-player" src="about:blank" frameborder="0"
+                        allowfullscreen allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox"></iframe>
+
+                    <!-- Click-shield: sits above the iframe at z-index 5.
+                         Intercepts every tap/click so embed ad click-jacks can't fire.
+                         Lowered to z-index:-1 only while in fullscreen (JS). -->
+                    <div class="iframe-click-shield" id="iframe-click-shield"></div>
+
+
                 </div>
-            </div>
 
-            <iframe id="main-player" src="about:blank" frameborder="0"
-                allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"
-                style="border:none; background:#000;"></iframe>
-        </div>
-    </div>
+                <!-- BOTTOM BAR — episode selector + info -->
+                <div class="player-bar player-bar--bottom" id="player-bar-bottom">
+
+                    <!-- Season / Episode row (TV shows only) -->
+                    <div class="pepisode-row" id="pepisode-row" style="display:none;">
+                        <div class="pepisode-selects">
+                            <div class="pselect-wrap">
+                                <label class="pselect-label">Season</label>
+                                <select class="pselect" id="season-select" onchange="onSeasonChange()"></select>
+                            </div>
+                            <div class="pselect-wrap">
+                                <label class="pselect-label">Episode</label>
+                                <select class="pselect" id="episode-select" onchange="onEpisodeChange()"></select>
+                            </div>
+                        </div>
+                        <div class="pepisode-nav">
+                            <button class="pepnav-btn" id="ep-prev-btn" onclick="navEpisode(-1)" title="Previous episode">‹ Prev</button>
+                            <button class="pepnav-btn" id="ep-next-btn" onclick="navEpisode(1)" title="Next episode">Next ›</button>
+                        </div>
+                    </div>
+
+                    <!-- Info row: rating, year, genre tags -->
+                    <div class="pinfo-row" id="pinfo-row"></div>
+                </div>
+
+            </div><!-- /.player-center -->
+
+            <!-- ── RIGHT AD COLUMN ── -->
+            <aside class="pside pside-right" id="player-ad-right">
+                <!-- Single 300×250 ad card -->
+                <div class="pad-slot pad-slot--300x250" id="ad-slot-right-top">
+                    <span class="pad-label">Advertisement</span>
+                </div>
+                <!-- Skip Ad button -->
+                <button class="skip-ad-btn" id="skip-ad-btn" onclick="skipAd()" disabled>
+                    Skip Ad <span class="skip-ad-countdown" id="skip-ad-countdown">5</span>
+                </button>
+            </aside>
+
+        </div><!-- /.player-shell -->
+    </div><!-- /.player-modal -->
 
     <footer class="site-footer">
         <div class="footer-content">
@@ -270,7 +324,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 BOOMFLIX. All rights reserved. &nbsp;·&nbsp; Press <kbd>/</kbd> to search</p>
+            <p>&copy; 2026 BOOMFLIX. All rights reserved. &nbsp;·&nbsp; Cinema without limits.</p>
         </div>
     </footer>
 

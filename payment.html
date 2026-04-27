@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOOMFLIX ELITE — Upgrade</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #E50914;
+            --gold: #FFD700;
+            --gold2: #FFA500;
+            --bg: #0a0a0a;
+            --card: #141414;
+            --border: rgba(255,255,255,0.08);
+            --text: #ffffff;
+            --muted: #888;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Roboto', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background */
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(229,9,20,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 100% 80%, rgba(255,165,0,0.06) 0%, transparent 50%);
+            pointer-events: none; z-index: 0;
+        }
+
+        /* Nav */
+        .pay-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 20px 5%; position: relative; z-index: 10;
+            border-bottom: 1px solid var(--border);
+        }
+        .pay-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2rem; letter-spacing: 1px; text-decoration: none; color: white;
+        }
+        .pay-logo span { color: var(--primary); }
+        .back-btn {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--muted); padding: 8px 18px; border-radius: 6px;
+            cursor: pointer; font-size: 0.85rem; transition: all 0.2s;
+            text-decoration: none; display: inline-block;
+        }
+        .back-btn:hover { border-color: white; color: white; }
+
+        /* Main layout */
+        .pay-wrapper {
+            position: relative; z-index: 1;
+            max-width: 1000px; margin: 0 auto;
+            padding: 50px 20px 80px;
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 40px; align-items: start;
+        }
+
+        /* Left — Plan selector */
+        .plan-section h1 {
+            font-size: 2.4rem; font-weight: 900; margin-bottom: 6px;
+        }
+        .plan-section h1 span { color: var(--primary); }
+        .plan-subtitle {
+            color: var(--muted); font-size: 0.9rem; margin-bottom: 32px;
+        }
+
+        .plan-cards { display: flex; flex-direction: column; gap: 14px; margin-bottom: 32px; }
+
+        .plan-card {
+            border: 2px solid var(--border);
+            border-radius: 12px; padding: 20px 22px;
+            cursor: pointer; transition: all 0.25s; position: relative;
+            background: var(--card);
+        }
+        .plan-card:hover { border-color: rgba(255,255,255,0.2); }
+        .plan-card.selected {
+            border-color: var(--primary);
+            background: rgba(229,9,20,0.07);
+        }
+        .plan-card.recommended { border-color: var(--gold); background: rgba(255,215,0,0.05); }
+        .plan-card.recommended.selected { border-color: var(--gold); background: rgba(255,215,0,0.1); }
+
+        .plan-badge {
+            position: absolute; top: -11px; left: 18px;
+            background: linear-gradient(90deg, var(--gold), var(--gold2));
+            color: black; font-size: 0.65rem; font-weight: 900;
+            padding: 3px 12px; border-radius: 20px; letter-spacing: 0.08em;
+        }
+
+        .plan-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .plan-name { font-weight: 700; font-size: 1rem; }
+        .plan-price { font-size: 1.4rem; font-weight: 900; }
+        .plan-price sub { font-size: 0.65rem; font-weight: 400; color: var(--muted); }
+        .plan-saving { color: #4ade80; font-size: 0.72rem; font-weight: 700; }
+        .plan-per { color: var(--muted); font-size: 0.78rem; margin-top: 2px; }
+
+        .plan-radio {
+            position: absolute; top: 50%; right: 20px; transform: translateY(-50%);
+            width: 18px; height: 18px; border-radius: 50%;
+            border: 2px solid var(--muted); transition: all 0.2s;
+        }
+        .plan-card.selected .plan-radio { border-color: var(--primary); background: var(--primary); }
+        .plan-card.recommended.selected .plan-radio { border-color: var(--gold); background: var(--gold); }
+
+        /* Perks */
+        .perks-list { display: flex; flex-direction: column; gap: 10px; }
+        .perk {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.85rem; color: rgba(255,255,255,0.75);
+        }
+        .perk-check {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: rgba(229,9,20,0.2); border: 1px solid rgba(229,9,20,0.4);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; color: var(--primary); flex-shrink: 0;
+        }
+
+        /* Right — payment form */
+        .form-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px; padding: 36px 32px;
+        }
+        .form-section h2 { font-size: 1.25rem; font-weight: 800; margin-bottom: 6px; }
+        .form-section p { color: var(--muted); font-size: 0.82rem; margin-bottom: 28px; }
+
+        .pay-method-tabs {
+            display: flex; gap: 8px; margin-bottom: 24px;
+        }
+        .pay-tab {
+            flex: 1; padding: 10px 6px; border-radius: 8px;
+            border: 1px solid var(--border); background: transparent;
+            color: var(--muted); font-size: 0.8rem; cursor: pointer;
+            transition: all 0.2s; text-align: center;
+        }
+        .pay-tab:hover { border-color: rgba(255,255,255,0.2); color: white; }
+        .pay-tab.active { border-color: var(--primary); color: white; background: rgba(229,9,20,0.1); }
+        .pay-tab .tab-icon { font-size: 1.1rem; display: block; margin-bottom: 3px; }
+
+        /* Card form */
+        .pay-form { display: flex; flex-direction: column; gap: 14px; }
+        .field-group { display: flex; flex-direction: column; gap: 5px; }
+        .field-group label {
+            font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: rgba(255,255,255,0.35);
+        }
+        .field-group input, .field-group select {
+            width: 100%; padding: 13px 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; color: white; font-size: 0.9rem;
+            outline: none; transition: border-color 0.2s;
+            font-family: 'Roboto', sans-serif;
+        }
+        .field-group input::placeholder { color: rgba(255,255,255,0.2); }
+        .field-group input:focus, .field-group select:focus { border-color: var(--primary); }
+        .field-group select option { background: #1a1a1a; }
+
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .card-icons { display: flex; gap: 6px; margin-bottom: 4px; }
+        .card-icon {
+            padding: 3px 8px; border-radius: 4px; font-size: 0.65rem;
+            font-weight: 900; letter-spacing: 0.05em;
+        }
+        .ci-visa { background: #1a1f71; color: white; }
+        .ci-mc { background: #eb001b; color: white; }
+        .ci-amex { background: #007bc1; color: white; }
+        .ci-verve { background: #00a651; color: white; }
+
+        /* Mobile money panel */
+        .mobile-money-panel { display: none; flex-direction: column; gap: 14px; }
+        .mobile-money-panel.visible { display: flex; }
+
+        .network-select { display: flex; gap: 8px; }
+        .network-btn {
+            flex: 1; padding: 10px 6px; border-radius: 8px;
+            border: 1px solid var(--border); background: transparent;
+            color: var(--muted); font-size: 0.8rem; cursor: pointer;
+            transition: all 0.2s; text-align: center;
+        }
+        .network-btn.active { border-color: var(--gold); color: white; background: rgba(255,215,0,0.08); }
+
+        /* Summary */
+        .order-summary {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px; padding: 16px 18px;
+            margin-top: 4px;
+        }
+        .summary-row {
+            display: flex; justify-content: space-between;
+            font-size: 0.82rem; color: var(--muted); margin-bottom: 8px;
+        }
+        .summary-row.total {
+            color: white; font-weight: 800; font-size: 1rem;
+            border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px;
+        }
+        .summary-row span:last-child { color: white; }
+        .summary-row.total span:last-child { color: var(--gold); }
+
+        /* Pay button */
+        .pay-now-btn {
+            width: 100%; padding: 16px;
+            background: linear-gradient(135deg, var(--primary) 0%, #c40812 100%);
+            color: white; border: none; border-radius: 10px;
+            font-size: 1rem; font-weight: 900; cursor: pointer;
+            letter-spacing: 0.05em; transition: all 0.2s;
+            box-shadow: 0 6px 30px rgba(229,9,20,0.35);
+            margin-top: 6px;
+        }
+        .pay-now-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 40px rgba(229,9,20,0.5); }
+        .pay-now-btn:active { transform: translateY(0); }
+        .pay-now-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .secure-note {
+            display: flex; align-items: center; justify-content: center;
+            gap: 6px; font-size: 0.73rem; color: var(--muted); margin-top: 12px;
+        }
+        .secure-note::before { content: '🔒'; font-size: 0.8rem; }
+
+        /* Success overlay */
+        .success-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.95); z-index: 9999;
+            justify-content: center; align-items: center; flex-direction: column;
+            text-align: center; padding: 30px;
+        }
+        .success-overlay.show { display: flex; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .success-icon { font-size: 5rem; margin-bottom: 20px; animation: popIn 0.6s 0.3s both cubic-bezier(0.175,0.885,0.32,1.275); }
+        @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .success-overlay h2 { font-size: 2.2rem; font-weight: 900; margin-bottom: 10px; }
+        .success-overlay h2 span { color: var(--gold); }
+        .success-overlay p { color: var(--muted); font-size: 0.95rem; margin-bottom: 30px; max-width: 380px; }
+        .success-back-btn {
+            background: var(--primary); color: white; border: none;
+            padding: 14px 36px; border-radius: 8px; font-size: 1rem;
+            font-weight: 800; cursor: pointer; text-decoration: none;
+            display: inline-block; transition: all 0.2s;
+        }
+        .success-back-btn:hover { background: #c40812; transform: translateY(-2px); }
+
+        /* Loading spinner inside button */
+        .btn-spinner {
+            display: none; width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white; border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin: 0 auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 720px) {
+            .pay-wrapper { grid-template-columns: 1fr; gap: 28px; padding: 30px 16px 60px; }
+            .plan-section h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="pay-nav">
+    <a class="pay-logo" href="index.html">BOOM<span>FLIX</span></a>
+    <a class="back-btn" href="index.html">← Back</a>
+</nav>
+
+<div class="pay-wrapper">
+
+    <!-- LEFT: Plan Selection -->
+    <div class="plan-section">
+        <h1>Go <span>ELITE</span></h1>
+        <p class="plan-subtitle">Unlock the full cinematic experience — no ads, 4K, offline viewing.</p>
+
+        <div class="plan-cards">
+            <div class="plan-card" id="plan-monthly" onclick="selectPlan('monthly')">
+                <div class="plan-top">
+                    <div>
+                        <div class="plan-name">Monthly</div>
+                        <div class="plan-per">Billed every month</div>
+                    </div>
+                    <div class="plan-price">$9.99<sub>/mo</sub></div>
+                </div>
+                <div class="plan-radio"></div>
+            </div>
+
+            <div class="plan-card recommended selected" id="plan-yearly" onclick="selectPlan('yearly')">
+                <div class="plan-badge">BEST VALUE · SAVE 33%</div>
+                <div class="plan-top">
+                    <div>
+                        <div class="plan-name">Yearly</div>
+                        <div class="plan-per">Just $6.67/mo — billed annually</div>
+                        <div class="plan-saving">You save $39.89</div>
+                    </div>
+                    <div class="plan-price">$79.99<sub>/yr</sub></div>
+                </div>
+                <div class="plan-radio"></div>
+            </div>
+        </div>
+
+        <div class="perks-list">
+            <div class="perk"><div class="perk-check">✓</div> Ad-free streaming, always</div>
+            <div class="perk"><div class="perk-check">✓</div> Ultra HD &amp; 4K on all content</div>
+            <div class="perk"><div class="perk-check">✓</div> Download for offline viewing</div>
+            <div class="perk"><div class="perk-check">✓</div> Watch on 4 screens simultaneously</div>
+            <div class="perk"><div class="perk-check">✓</div> Priority access to new releases</div>
+            <div class="perk"><div class="perk-check">✓</div> Cancel anytime — no penalties</div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Payment Form -->
+    <div class="form-section">
+        <h2>Complete Payment</h2>
+        <p>Secure, encrypted checkout. Your data is never stored.</p>
+
+        <!-- Payment method tabs -->
+        <div class="pay-method-tabs">
+            <button class="pay-tab active" onclick="switchMethod('card', this)">
+                <span class="tab-icon">💳</span>Card
+            </button>
+            <button class="pay-tab" onclick="switchMethod('mobile', this)">
+                <span class="tab-icon">📱</span>Mobile Money
+            </button>
+            <button class="pay-tab" onclick="switchMethod('paypal', this)">
+                <span class="tab-icon">🌐</span>PayPal
+            </button>
+        </div>
+
+        <!-- Card form -->
+        <div class="pay-form" id="card-form">
+            <div class="card-icons">
+                <span class="card-icon ci-visa">VISA</span>
+                <span class="card-icon ci-mc">MC</span>
+                <span class="card-icon ci-amex">AMEX</span>
+                <span class="card-icon ci-verve">VERVE</span>
+            </div>
+
+            <div class="field-group">
+                <label>Cardholder Name</label>
+                <input type="text" id="card-name" placeholder="Name on card">
+            </div>
+            <div class="field-group">
+                <label>Card Number</label>
+                <input type="text" id="card-number" placeholder="1234 5678 9012 3456" maxlength="19">
+            </div>
+            <div class="field-row">
+                <div class="field-group">
+                    <label>Expiry</label>
+                    <input type="text" id="card-expiry" placeholder="MM / YY" maxlength="7">
+                </div>
+                <div class="field-group">
+                    <label>CVV</label>
+                    <input type="text" id="card-cvv" placeholder="•••" maxlength="4">
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Money form -->
+        <div class="mobile-money-panel" id="mobile-form">
+            <div class="field-group">
+                <label>Select Network</label>
+                <div class="network-select">
+                    <button class="network-btn active" onclick="selectNetwork(this)">MTN</button>
+                    <button class="network-btn" onclick="selectNetwork(this)">Airtel</button>
+                    <button class="network-btn" onclick="selectNetwork(this)">Vodafone</button>
+                    <button class="network-btn" onclick="selectNetwork(this)">Glo</button>
+                </div>
+            </div>
+            <div class="field-group">
+                <label>Phone Number</label>
+                <input type="tel" placeholder="+233 XX XXX XXXX">
+            </div>
+            <div class="field-group">
+                <label>Account Name</label>
+                <input type="text" placeholder="Registered name">
+            </div>
+        </div>
+
+        <!-- PayPal form -->
+        <div id="paypal-form" style="display:none;">
+            <div class="field-group">
+                <label>PayPal Email</label>
+                <input type="email" placeholder="you@paypal.com">
+            </div>
+            <p style="color: var(--muted); font-size:0.78rem; margin-top: 8px;">
+                You'll be redirected to PayPal to confirm your payment securely.
+            </p>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="order-summary" id="order-summary">
+            <div class="summary-row"><span>Plan</span><span id="summary-plan">Yearly Elite</span></div>
+            <div class="summary-row"><span>Billing</span><span id="summary-billing">Annually</span></div>
+            <div class="summary-row total"><span>Total Today</span><span id="summary-total">$79.99</span></div>
+        </div>
+
+        <button class="pay-now-btn" id="pay-btn" onclick="processPayment()">
+            <span id="btn-text">🔐 PAY NOW &amp; GO ELITE</span>
+            <div class="btn-spinner" id="btn-spinner"></div>
+        </button>
+
+        <div class="secure-note">256-bit SSL encryption · Cancel anytime</div>
+    </div>
+</div>
+
+<!-- Success Overlay -->
+<div class="success-overlay" id="success-overlay">
+    <div class="success-icon">🎬</div>
+    <h2>Welcome to <span>ELITE</span>!</h2>
+    <p>Your upgrade is confirmed. Enjoy ad-free 4K streaming, offline downloads, and unlimited cinema.</p>
+    <a class="success-back-btn" href="index.html">Start Watching →</a>
+</div>
+
+<script>
+    let selectedPlan = 'yearly';
+
+    function selectPlan(plan) {
+        selectedPlan = plan;
+        document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+        document.getElementById('plan-' + plan).classList.add('selected');
+        const isYearly = plan === 'yearly';
+        document.getElementById('summary-plan').textContent = isYearly ? 'Yearly Elite' : 'Monthly Elite';
+        document.getElementById('summary-billing').textContent = isYearly ? 'Annually' : 'Monthly';
+        document.getElementById('summary-total').textContent = isYearly ? '$79.99' : '$9.99';
+    }
+
+    function switchMethod(method, btn) {
+        document.querySelectorAll('.pay-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('card-form').style.display = method === 'card' ? 'flex' : 'none';
+        document.getElementById('mobile-form').classList.toggle('visible', method === 'mobile');
+        document.getElementById('paypal-form').style.display = method === 'paypal' ? 'block' : 'none';
+    }
+
+    function selectNetwork(btn) {
+        document.querySelectorAll('.network-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    // Card number formatting
+    document.getElementById('card-number')?.addEventListener('input', function() {
+        let val = this.value.replace(/\D/g, '').slice(0, 16);
+        this.value = val.replace(/(.{4})/g, '$1 ').trim();
+    });
+    document.getElementById('card-expiry')?.addEventListener('input', function() {
+        let val = this.value.replace(/\D/g, '').slice(0, 4);
+        if (val.length >= 2) val = val.slice(0,2) + ' / ' + val.slice(2);
+        this.value = val;
+    });
+
+    function processPayment() {
+        const btn = document.getElementById('pay-btn');
+        const text = document.getElementById('btn-text');
+        const spinner = document.getElementById('btn-spinner');
+        btn.disabled = true;
+        text.style.display = 'none';
+        spinner.style.display = 'block';
+        // Simulate payment processing
+        setTimeout(() => {
+            spinner.style.display = 'none';
+            text.style.display = 'block';
+            btn.disabled = false;
+            // Mark user as elite in localStorage
+            try {
+                const rawUser = localStorage.getItem('boomflix_user');
+                let user;
+                if (rawUser) {
+                    user = JSON.parse(rawUser);
+                } else {
+                    // If no user exists, create a guest elite user
+                    user = { name: 'Guest Elite', email: 'guest@boomflix.com' };
+                }
+                user.elite = true;
+                user.plan = selectedPlan;
+                localStorage.setItem('boomflix_user', JSON.stringify(user));
+            } catch(e) {}
+            document.getElementById('success-overlay').classList.add('show');
+        }, 2400);
+    }
+</script>
+</body>
+</html>
