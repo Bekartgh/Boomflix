@@ -130,7 +130,11 @@ body {
     padding: 10px 25px; border-radius: 4px; font-weight: bold;
     cursor: pointer; display: flex; align-items: center;
     gap: 8px; border: none; font-size: 1rem; transition: all 0.2s;
+    position: relative; overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
 }
+.btn::after { content: none; }
 .btn-play { background: white; color: black; }
 .btn-play:hover { background: rgba(255,255,255,0.8); }
 .btn-info { background: rgba(109, 109, 110, 0.7); color: white; }
@@ -190,7 +194,10 @@ body {
     opacity: 0; transition: opacity 0.25s; display: flex;
     flex-direction: column; justify-content: flex-end; padding: 10px;
 }
-.card:hover .card-overlay { opacity: 1; }
+.card:hover .card-overlay,
+.card:active .card-overlay,
+.card:focus .card-overlay,
+.card:focus-within .card-overlay { opacity: 1; visibility: visible; }
 
 .card-meta { display: flex; gap: 6px; margin-bottom: 4px; }
 .card-rating, .card-year {
@@ -239,6 +246,258 @@ body {
 .interstitial-ad { display: none !important; }
 
 /* ═══════════════════════════════════════════════════════════════
+   PRE-ROLL AD OVERLAY — Premium Fade Transition
+   ═══════════════════════════════════════════════════════════════ */
+
+.pre-roll-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3500;
+    background: rgba(0, 0, 0, 0.98);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    animation: fadeInPreRoll 0.4s ease-out;
+    backdrop-filter: blur(2px);
+}
+
+@keyframes fadeInPreRoll {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(2px);
+    }
+}
+
+.pre-roll-overlay.closing {
+    animation: fadeOutPreRoll 0.3s ease-in forwards;
+}
+
+@keyframes fadeOutPreRoll {
+    from {
+        opacity: 1;
+        backdrop-filter: blur(2px);
+    }
+    to {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+}
+
+.pre-roll-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    max-width: 400px;
+    width: 95%;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Ad container */
+.pre-roll-ad-container {
+    width: 100%;
+    height: 250px;
+    background: linear-gradient(135deg, rgba(20,20,20,0.8), rgba(40,40,40,0.8));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.pre-roll-ad-container .pad-label {
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.18);
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+/* Countdown section */
+.pre-roll-countdown-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    width: 100%;
+    justify-content: center;
+}
+
+.pre-roll-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    letter-spacing: 0.08em;
+}
+
+.pre-roll-timer {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(229, 9, 20, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(229, 9, 20, 0);
+    }
+}
+
+/* Skip button */
+.pre-roll-skip-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.pre-roll-skip-btn:disabled {
+    cursor: not-allowed;
+    color: rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.pre-roll-skip-btn:not(:disabled) {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+}
+
+.pre-roll-skip-btn:not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.pre-roll-skip-btn:not(:disabled):active {
+    transform: translateY(0);
+}
+
+.skip-timer {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 24px;
+    text-align: center;
+}
+
+.pre-roll-skip-btn:disabled .skip-timer {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Fallback ad styling */
+.fallback-ad {
+    background: linear-gradient(135deg, #1a1a1a, #2d2d2d) !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    color: #888 !important;
+    font-size: 0.85rem !important;
+    text-align: center !important;
+    padding: 16px !important;
+}
+
+.fallback-ad strong {
+    color: #aaa;
+    font-size: 1rem;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.fallback-ad p {
+    color: #666;
+    font-size: 0.75rem;
+    margin: 0;
+}
+
+/* Mobile responsiveness for pre-roll */
+@media (max-width: 640px) {
+    .pre-roll-content {
+        max-width: 100%;
+        padding: 0 12px;
+    }
+    
+    .pre-roll-ad-container {
+        height: 200px;
+    }
+    
+    .pre-roll-countdown-wrap {
+        width: 100%;
+    }
+    
+    .pre-roll-skip-btn {
+        width: 100%;
+        font-size: 0.85rem;
+        padding: 10px 16px;
+    }
+    
+    .pre-roll-timer {
+        width: 36px;
+        height: 36px;
+        font-size: 1.2rem;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    PLAYER MODAL — MovieBox-style
    Layout: [Left Ad] | [Top bar + Video + Bottom bar] | [Right Ad]
    ═══════════════════════════════════════════════════════════════ */
@@ -265,7 +524,7 @@ body {
 /* ── Modal shell ───────────────────────────────────────────────── */
 .player-modal {
     display: none;
-    position: fixed; inset: 0; z-index: 3000;
+    position: fixed; inset: 0; z-index: 4000;
     background: #000;
     justify-content: center; align-items: stretch;
     overflow: hidden;
@@ -863,4 +1122,240 @@ body {
     .card { min-width: 160px; }
     .loading-shimmer { min-width: 160px; }
     .auth-card { padding: 40px 28px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PREMIUM SOURCE SELECTOR — Netflix-style dropdown
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Wrapper — relative so dropdown anchors to it */
+.psource-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* Trigger button */
+.psrc-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.16);
+    color: rgba(255,255,255,0.85);
+    padding: 5px 10px 5px 9px;
+    border-radius: 7px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+.psrc-menu-btn:hover {
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.28);
+    color: white;
+}
+.psrc-menu-btn.open {
+    background: rgba(229,9,20,0.18);
+    border-color: var(--primary);
+    color: white;
+}
+.psrc-chevron {
+    transition: transform 0.2s ease;
+    color: rgba(255,255,255,0.4);
+}
+.psrc-menu-btn.open .psrc-chevron {
+    transform: rotate(180deg);
+}
+
+/* Dropdown panel */
+.psrc-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 220px;
+    background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.75), 0 0 0 1px rgba(229,9,20,0.08);
+    z-index: 200;
+    /* Hidden by default */
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-6px) scale(0.97);
+    transform-origin: top right;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.psrc-dropdown.visible {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0) scale(1);
+}
+
+/* Dropdown header */
+.psrc-dropdown-header {
+    padding: 11px 14px 8px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.3);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Source option rows */
+.psrc-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s, color 0.12s;
+    position: relative;
+}
+.psrc-option:hover {
+    background: rgba(255,255,255,0.07);
+    color: white;
+}
+.psrc-option.active {
+    color: white;
+    background: rgba(229,9,20,0.12);
+}
+.psrc-option.active .psrc-option-dot {
+    background: var(--primary);
+    box-shadow: 0 0 6px rgba(229,9,20,0.6);
+}
+
+/* Status dot */
+.psrc-option-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+.psrc-option:hover .psrc-option-dot {
+    background: rgba(255,255,255,0.5);
+}
+
+/* Source name */
+.psrc-option-name {
+    flex: 1;
+    font-weight: 600;
+}
+
+/* Tag badge (Recommended / Africa CDN / etc.) */
+.psrc-option-tag {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+.psrc-option.active .psrc-option-tag {
+    color: rgba(229,9,20,0.9);
+    background: rgba(229,9,20,0.1);
+    border-color: rgba(229,9,20,0.2);
+}
+
+/* Loading state on option — shown during auto-advance */
+.psrc-option.loading .psrc-option-dot {
+    background: #FFA500;
+    animation: dotPulse 0.8s ease-in-out infinite;
+}
+@keyframes dotPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Footer tip */
+.psrc-dropdown-tip {
+    padding: 8px 14px 10px;
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.2);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    letter-spacing: 0.02em;
+}
+
+/* Mobile: anchor dropdown to left on narrow screens */
+@media (max-width: 480px) {
+    .psrc-dropdown {
+        right: auto;
+        left: 0;
+        min-width: 190px;
+    }
+}
+
+/* ── Hero Extra: Cast Row ──────────────────────────────────────── */
+.hero-extra {
+    margin-top: 18px;
+    animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-cast-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.hero-cast-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.hero-cast-member {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: default;
+}
+
+.hero-cast-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center top;
+    background-color: #2a2a2a;
+    border: 2px solid rgba(255,255,255,0.15);
+    transition: border-color 0.2s;
+}
+
+.hero-cast-member:hover .hero-cast-avatar {
+    border-color: var(--primary);
+}
+
+.hero-cast-name {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.75);
+    text-align: center;
+    max-width: 62px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

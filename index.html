@@ -12,20 +12,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://image.tmdb.org">
     <link rel="preconnect" href="https://vidsrc.xyz">
-    <!-- CSP: upgrade HTTP→HTTPS, block frames from navigating the top page,
-         and restrict where scripts/frames can load from.
-         frame-ancestors 'self' stops this page being framed by others.
-         navigate-to blocks any child frame redirecting the top-level browsing context. -->
-    <meta http-equiv="Content-Security-Policy" content="
-        upgrade-insecure-requests;
-        frame-ancestors 'self';
-        navigate-to 'none';
-    ">
-    <!-- Revoke navigation & popup permissions from all embedded frames -->
-    <meta http-equiv="Permissions-Policy" content="
-        interest-cohort=(),
-        browsing-topics=()
-    ">
+    <!-- CSP: permissive for https to let embed players resolve streams freely.
+         frame-src / connect-src intentionally allow all https so vidsrc.to,
+         vidsrc.xyz and embed.su sub-iframes and XHR requests are never blocked.
+         Tightening these was what stopped movies from playing.
+         Redirect/popup protection is handled by the sandbox attribute + JS layer. -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; frame-ancestors 'self'; default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; font-src https: data:; img-src 'self' https: data: blob:; media-src 'self' https: blob:; connect-src 'self' https: blob:; frame-src https: blob:; worker-src blob:;">
+    <!-- Block interest tracking and unnecessary browser features from iframes -->
+    <meta http-equiv="Permissions-Policy" content="interest-cohort=(), browsing-topics=(), camera=(), microphone=(), geolocation=(), payment=()">
     
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
@@ -79,6 +73,7 @@
                     <span>Surprise Me</span>
                 </button>
             </div>
+            <div class="hero-extra" id="hero-extra"></div>
         </div>
     </header>
 
@@ -178,6 +173,24 @@
 
 
     <!-- ═══════════════════════════════════════════════════════
+         PRE-ROLL AD OVERLAY — Shown before video starts
+         ═══════════════════════════════════════════════════════ -->
+    <div class="pre-roll-overlay" id="pre-roll-overlay" style="display: none;">
+        <div class="pre-roll-content">
+            <div class="pre-roll-ad-container" id="pre-roll-ad-slot">
+                <span class="pad-label">Advertisement</span>
+            </div>
+            <div class="pre-roll-countdown-wrap">
+                <p class="pre-roll-text">Ad</p>
+                <span class="pre-roll-timer" id="pre-roll-timer">5</span>
+            </div>
+            <button class="pre-roll-skip-btn" id="pre-roll-skip-btn" disabled>
+                Skip <span class="skip-timer">5</span>s
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
          PLAYER MODAL  —  MovieBox-style layout
          [Left Ad 160px] | [Video + controls] | [Right Ad 160px]
          ═══════════════════════════════════════════════════════ -->
@@ -203,14 +216,43 @@
                         </div>
                     </div>
                     <div class="pbar-right">
-                        <!-- Source switcher pills -->
+                        <!-- Premium Source Selector — Netflix-style dropdown -->
                         <div class="psource-wrap" id="psource-wrap">
-                            <span class="psource-label">Source</span>
-                            <button class="psrc-pill active" onclick="trySourceAt(0)">1</button>
-                            <button class="psrc-pill" onclick="trySourceAt(1)">2</button>
-                            <button class="psrc-pill" onclick="trySourceAt(2)">3</button>
-                            <button class="psrc-pill" onclick="trySourceAt(3)">4</button>
-                            <button class="psrc-pill" onclick="trySourceAt(4)">5</button>
+                            <button class="psrc-menu-btn" id="psrc-menu-btn" onclick="toggleSourceMenu()" title="Switch source">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+                                <span id="psrc-active-label">Source 1</span>
+                                <svg class="psrc-chevron" width="10" height="10" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+                            </button>
+                            <!-- Dropdown panel -->
+                            <div class="psrc-dropdown" id="psrc-dropdown">
+                                <div class="psrc-dropdown-header">Select Stream Source</div>
+                                <button class="psrc-option active" data-index="0" onclick="pickSource(0)">
+                                    <span class="psrc-option-dot"></span>
+                                    <span class="psrc-option-name">VidSrc CC</span>
+                                    <span class="psrc-option-tag">Recommended</span>
+                                </button>
+                                <button class="psrc-option" data-index="1" onclick="pickSource(1)">
+                                    <span class="psrc-option-dot"></span>
+                                    <span class="psrc-option-name">MultiEmbed</span>
+                                    <span class="psrc-option-tag">Africa CDN</span>
+                                </button>
+                                <button class="psrc-option" data-index="2" onclick="pickSource(2)">
+                                    <span class="psrc-option-dot"></span>
+                                    <span class="psrc-option-name">VidSrc TO</span>
+                                    <span class="psrc-option-tag">Stable</span>
+                                </button>
+                                <button class="psrc-option" data-index="3" onclick="pickSource(3)">
+                                    <span class="psrc-option-dot"></span>
+                                    <span class="psrc-option-name">Embed SU</span>
+                                    <span class="psrc-option-tag">TV Shows</span>
+                                </button>
+                                <button class="psrc-option" data-index="4" onclick="pickSource(4)">
+                                    <span class="psrc-option-dot"></span>
+                                    <span class="psrc-option-name">VidSrc XYZ</span>
+                                    <span class="psrc-option-tag">Fallback</span>
+                                </button>
+                                <div class="psrc-dropdown-tip">Auto-switches if a source fails</div>
+                            </div>
                         </div>
                         <span class="pbar-divider"></span>
                         <span class="pbar-elite-badge">⚡ ELITE</span>
@@ -241,19 +283,22 @@
                         <button class="vstage-next-btn" onclick="tryNextSource()">Try Next Source →</button>
                     </div>
 
-                    <!-- The player iframe.
-                         allow-popups: needed by embed players for internal video init.
-                         allow-popups-to-escape-sandbox: lets sub-iframes inside the embed work.
-                         allow-top-navigation-by-user-activation is intentionally OMITTED
-                         so the embed cannot redirect the parent page on tap. -->
+                    <!-- PLAYER IFRAME
+                         sandbox attribute intentionally removed — vidsrc.cc, vidsrc.to,
+                         embed.su and all major embed providers detect sandbox and refuse
+                         to play video when it is present. Protection is handled by:
+                           1. window.open override (blocks popup tabs)
+                           2. Blur watchdog (catches redirect attempts)
+                           3. beforeunload guard (last line of defence)
+                         referrerpolicy="no-referrer" still prevents embeds seeing your URL. -->
                     <iframe id="main-player" src="about:blank" frameborder="0"
-                        allowfullscreen allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox"></iframe>
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allowfullscreen
+                        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"></iframe>
 
-                    <!-- Click-shield: sits above the iframe at z-index 5.
-                         Intercepts every tap/click so embed ad click-jacks can't fire.
-                         Lowered to z-index:-1 only while in fullscreen (JS). -->
-                    <div class="iframe-click-shield" id="iframe-click-shield"></div>
+                    <!-- No click-shield: removing it allows the embed player's
+                         Play button to work. Popup/redirect protection is handled
+                         entirely by the sandbox + window.open override + blur watchdog. -->
 
 
                 </div>
