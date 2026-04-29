@@ -1,15 +1,9 @@
 /**
- * BOOMFLIX - Stable Core
+ * BOOMFLIX - Stable Core (Enhanced)
  * Powered by TMDB API
- */
-
-/**
- * BOOMFLIX - Stable Core
- * ─────────────────────────────────────
- * PLAYER STABILITY:
- *   - 5 embed sources tried in order with auto-fallback
- *   - 14s timeout before showing error/next-source prompt
- *   - All player state cleared on close to prevent stuck iframes
+ * 
+ * STRIPPED DOWN - FOCUSED ON PLAYBACK
+ * Removed all potential playback blockers
  */
 
 // ─── Config ────────────────────────────────────────────────────────────────────
@@ -20,36 +14,24 @@ const CONFIG = {
     IMG_W500: 'https://image.tmdb.org/t/p/w500'
 };
 
+// Detect if running inside iframe
+const IS_NESTED_IFRAME = window.top !== window.self;
 
-
-// ─── Player Sources (3 most stable — in reliability order) ───────────────────
-// Reduced from 5 to 3: fewer sources = less noise, faster fallback cycle.
-// 5 sources in reliability order — auto-fallback cycles through all of them
+// ─── Player Sources (Most Stable Only) ──────────────────────────────────────────
+// Using only the most reliable sources, removed complex fallback logic
 const PLAYER_SOURCES = [
-    // Source 1: vidsrc.cc — currently most stable, good global coverage
     (id, type) => type === 'tv'
         ? `https://vidsrc.cc/v2/embed/tv/${id}`
         : `https://vidsrc.cc/v2/embed/movie/${id}`,
-    // Source 2: multiembed direct stream — works well in Africa/Ghana
-    (id, type) => {
-        const base = id.toString().split('/')[0];
-        return type === 'tv'
-            ? `https://multiembed.mov/directstream.php?video_id=${base}&tmdb=1&tv=1`
-            : `https://multiembed.mov/directstream.php?video_id=${base}&tmdb=1`;
-    },
-    // Source 3: vidsrc.to — widely used fallback
     (id, type) => type === 'tv'
         ? `https://vidsrc.to/embed/tv/${id}`
         : `https://vidsrc.to/embed/movie/${id}`,
-    // Source 4: embed.su — different CDN, good TV coverage
     (id, type) => type === 'tv'
         ? `https://embed.su/embed/tv/${id}`
         : `https://embed.su/embed/movie/${id}`,
-    // Source 5: vidsrc.xyz — final fallback
-    (id, type) => type === 'tv'
-        ? `https://vidsrc.xyz/embed/tv/${id}`
-        : `https://vidsrc.xyz/embed/movie/${id}`,
 ];
+
+const SOURCE_NAMES = ['VidSrc CC', 'VidSrc TO', 'Embed SU'];
 
 const CATEGORIES = [
     { name: 'Trending Now',    url: 'trending/all/day' },
@@ -74,7 +56,7 @@ const GENRE_FILTERS = [
     { name: 'Thriller',  url: 'discover/movie?with_genres=53' },
 ];
 
-// ─── Movie Store (safe alternative to inline JSON in HTML) ─────────────────────
+// ─── Movie Store ─────────────────────────────────────────────────────────────────
 const movieStore = new Map();
 function storeMovie(movie) { if (movie?.id) movieStore.set(movie.id, movie); }
 function getMovie(id) { return movieStore.get(Number(id)); }
@@ -139,7 +121,6 @@ try { currentUser = JSON.parse(localStorage.getItem('boomflix_user') || 'null');
 function openAuthModal() {
     const m = document.getElementById('auth-modal');
     if (!m) return;
-    // Close user menu if open
     document.getElementById('user-menu')?.classList.remove('open');
     m.style.display = 'flex';
     document.body.style.overflow = 'hidden';
@@ -187,7 +168,6 @@ function updateAuthUI() {
     const el = document.getElementById('auth-status');
     if (!el) return;
     
-    // Refresh premium button visibility whenever Auth UI updates
     setupPremiumBtn();
 
     if (currentUser) {
@@ -216,7 +196,7 @@ function updateAuthUI() {
     }
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────   ──────────────────────────────────────────
 function escHtml(str) {
     return String(str || '')
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -273,7 +253,7 @@ function buildCard(movie) {
     </div>`;
 }
 
-// ─── Event Delegation (all clicks in one place, no inline handlers) ────────────
+// ─── Event Delegation ──────────────────────────────────────────────────────────
 document.addEventListener('click', e => {
     const playBtn = e.target.closest('.card-play-btn');
     if (playBtn) { e.stopPropagation(); openPlayer(Number(playBtn.dataset.id), playBtn.dataset.type); return; }
@@ -282,7 +262,12 @@ document.addEventListener('click', e => {
     if (wBtn) { e.stopPropagation(); toggleWatchlist(Number(wBtn.dataset.wid), e); return; }
 
     const card = e.target.closest('.card[data-id]');
-    if (card) { const m = getMovie(Number(card.dataset.id)); if (m) handleMovieClick(m); return; }
+    if (card) { 
+        e.stopPropagation();
+        const m = getMovie(Number(card.dataset.id)); 
+        if (m) openPlayer(Number(card.dataset.id), card.dataset.type);
+        return; 
+    }
 
     const priceBox = e.target.closest('.price-box');
     if (priceBox) {
@@ -290,21 +275,21 @@ document.addEventListener('click', e => {
         priceBox.classList.add('selected'); return;
     }
     
-    // Fix: Ensure user-menu exists before checking classList
     const userMenu = document.getElementById('user-menu');
     if (userMenu && !e.target.closest('#user-profile-btn')) userMenu.classList.remove('open');
-    // player-modal backdrop click intentionally NOT wired — close only via X button
     if (e.target.id === 'auth-modal')    closeAuthModal();
     if (e.target.id === 'premium-modal') closePremiumModal();
 });
 
 document.addEventListener('keydown', e => {
     if (e.key === 'Enter' && e.target.classList.contains('card')) {
-        const m = getMovie(Number(e.target.dataset.id)); if (m) handleMovieClick(m);
+        const m = getMovie(Number(e.target.dataset.id)); 
+        if (m) openPlayer(Number(e.target.dataset.id), e.target.dataset.type);
     }
     if (e.key === 'Escape') { closePlayerModal(); closeAuthModal(); closePremiumModal(); }
     if (e.key === '/' && !['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) {
-        e.preventDefault(); document.getElementById('movie-search')?.focus();
+        e.preventDefault(); 
+        document.getElementById('movie-search')?.focus();
     }
 });
 
@@ -346,7 +331,7 @@ async function updateHero(movie) {
     if (badges) {
         badges.innerHTML = '<span class="hero-badge loading">Loading…</span>';
         const details = await apiFetch(`${type}/${movie.id}`);
-        if (heroMovieId !== movie.id) return; // stale
+        if (heroMovieId !== movie.id) return;
         if (details) {
             const year    = (details.release_date || details.first_air_date || '').slice(0, 4);
             const runtime = details.runtime ? `${details.runtime}m`
@@ -362,13 +347,12 @@ async function updateHero(movie) {
         } else badges.innerHTML = '';
     }
 
-    // Fetch and display cast in hero-extra
     const extraEl = document.getElementById('hero-extra');
     if (extraEl) {
         extraEl.innerHTML = '';
         try {
             const credits = await apiFetch(`${type}/${movie.id}/credits`);
-            if (heroMovieId !== movie.id) return; // stale
+            if (heroMovieId !== movie.id) return;
             const cast = (credits?.cast || []).slice(0, 5);
             if (cast.length) {
                 const castHTML = cast.map(p => `
@@ -381,10 +365,8 @@ async function updateHero(movie) {
         } catch(e) {}
     }
 
-    // My List button — injected directly into the button row beside Surprise Me
     const heroBtns = document.querySelector('.hero-btns');
     if (heroBtns) {
-        // Remove any existing My List btn to avoid duplicates on hero refresh
         document.getElementById('hero-list-btn')?.remove();
         const btn = document.createElement('button');
         btn.className = `btn btn-list${isInWatchlist(movie.id) ? ' active' : ''}`;
@@ -403,6 +385,64 @@ function updateHeroListBtn(id) {
     const inList = isInWatchlist(id);
     btn.textContent = inList ? '✓ In My List' : '+ My List';
     btn.classList.toggle('active', inList);
+}
+
+// ─── Hero Auto-Rotation ────────────────────────────────────────────────────────
+let _heroRotationTimer = null;
+let _heroMovies = [];
+let _heroIndex = 0;
+
+function startHeroRotation(movies) {
+    _heroMovies = movies;
+    _heroIndex = 0;
+    clearInterval(_heroRotationTimer);
+
+    // Build dot indicators
+    const hero = document.getElementById('hero-section');
+    if (hero) {
+        let dots = document.getElementById('hero-dots');
+        if (!dots) {
+            dots = document.createElement('div');
+            dots.id = 'hero-dots';
+            dots.style.cssText = 'position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:10;';
+            hero.style.position = hero.style.position || 'relative';
+            hero.appendChild(dots);
+        }
+        dots.innerHTML = movies.map((_, i) =>
+            `<button class="hero-dot${i===0?' active':''}" data-hi="${i}" aria-label="Hero slide ${i+1}"
+                style="width:9px;height:9px;border-radius:50%;border:none;cursor:pointer;padding:0;
+                background:${i===0?'#fff':'rgba(255,255,255,0.35)'};transition:background 0.3s,transform 0.3s;
+                transform:${i===0?'scale(1.3)':'scale(1)'}"></button>`
+        ).join('');
+        dots.addEventListener('click', e => {
+            const dot = e.target.closest('.hero-dot');
+            if (!dot) return;
+            const idx = Number(dot.dataset.hi);
+            _heroIndex = idx;
+            updateHero(_heroMovies[idx]);
+            _updateHeroDots(idx);
+            clearInterval(_heroRotationTimer);
+            _heroRotationTimer = setInterval(_heroAdvance, 8000);
+        });
+    }
+
+    _heroRotationTimer = setInterval(_heroAdvance, 8000);
+}
+
+function _heroAdvance() {
+    if (!_heroMovies.length) return;
+    _heroIndex = (_heroIndex + 1) % _heroMovies.length;
+    updateHero(_heroMovies[_heroIndex]);
+    _updateHeroDots(_heroIndex);
+}
+
+function _updateHeroDots(activeIdx) {
+    document.querySelectorAll('.hero-dot').forEach((dot, i) => {
+        const active = i === activeIdx;
+        dot.style.background = active ? '#fff' : 'rgba(255,255,255,0.35)';
+        dot.style.transform = active ? 'scale(1.3)' : 'scale(1)';
+        dot.classList.toggle('active', active);
+    });
 }
 
 function handleMovieClick(movie) {
@@ -474,407 +514,7 @@ function clearSearch() {
     if (input) input.value = '';
 }
 
-// ─── Ad System ─────────────────────────────────────────────────────────────────
-// Ads ONLY in: side panels beside video + non-blocking ticker at bottom.
-// Zero redirects. Zero overlays. Zero interruptions to playback.
-//
-// MONETAG SIDE BANNER SETUP (paste your tags once):
-//   Slot IDs available:
-//     monetag-slot-left-top    (300×250, left column, top)
-//     monetag-slot-left-sky    (160×600, left column, bottom)
-//     monetag-slot-right-top   (300×250, right column, top)
-//     monetag-slot-right-sky   (160×600, right column, bottom)
-//
-//   Example — paste your Monetag banner tag into a slot:
-//     const slot = document.getElementById('monetag-slot-left-top');
-//     if (slot) slot.innerHTML = `<script>atOptions={key:'YOUR_KEY',format:'iframe',
-//         height:250,width:300,params:{}};<\/script>
-//         <script src="//www.topcreativeformat.com/YOUR_KEY/invoke.js"><\/script>`;
-
-const TICKER_ADS = [
-    '🎬 Go ELITE — 4K, ad-free, offline. Upgrade now.',
-    '🍿 BOOMFLIX ELITE: Watch on 4 screens simultaneously.',
-    '⚡ Elite members get priority access to new releases.',
-    '🌍 Nollywood, Bollywood, Korean cinema — all in 4K with Elite.',
-    '📲 Download & watch offline — Elite only. Upgrade today.',
-];
-
-let tickerInterval = null;
-let tickerIndex    = 0;
-
-function startTickerAd() { /* ticker removed */ }
-function stopTickerAd()  { /* ticker removed */ }
-function dismissTicker() { /* ticker removed */ }
-
-function _isEliteUser() {
-    try { return JSON.parse(localStorage.getItem('boomflix_user') || '{}').elite === true; } catch(e) { return false; }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// ADVANCED MONETIZATION SYSTEM v2
-// ═══════════════════════════════════════════════════════════════════════════════
-// 
-// Features:
-//   • Pre-roll ad overlay with countdown timer
-//   • Right-side banner ads (Adsterra 300x250 or 160x600)
-//   • Ad session tracking (prevent duplicate loads)
-//   • Fallback ad system
-//   • Non-intrusive, fade transitions
-//   • Mobile responsive
-//   • Ad refresh capabilities
-//
-
-const AdSystem = {
-    // ── Config ──
-    PRE_ROLL_DURATION: 5,           // seconds before user can skip
-    BANNER_AD_WIDTH: 300,           // 300x250 or 160x600
-    SESSION_KEY: 'boomflix_ad_session',
-    ADSTERRA_KEY: '6efe268bbe911abbc4a448708e0c098c',
-    
-    // ── State ──
-    sessionData: {
-        preRollShown: false,        // prevent duplicate pre-roll per session
-        lastAdRefresh: 0,           // timestamp of last ad refresh
-        adCount: 0,                 // total ads shown this session
-        currentPlayerId: null,      // track which player instance
-    },
-    
-    // ── Initialization ──
-    init() {
-        this.loadSession();
-        this.setupPreRollHTML();
-    },
-    
-    loadSession() {
-        try {
-            const saved = localStorage.getItem(this.SESSION_KEY);
-            if (saved) this.sessionData = { ...this.sessionData, ...JSON.parse(saved) };
-        } catch(e) {}
-    },
-    
-    saveSession() {
-        try { localStorage.setItem(this.SESSION_KEY, JSON.stringify(this.sessionData)); } catch(e) {}
-    },
-    
-    setupPreRollHTML() {
-        // Ensure pre-roll overlay exists in DOM
-        let overlay = document.getElementById('pre-roll-overlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'pre-roll-overlay';
-            overlay.className = 'pre-roll-overlay';
-            overlay.innerHTML = `
-                <div class="pre-roll-content">
-                    <div class="pre-roll-ad-container" id="pre-roll-ad-slot">
-                        <span class="pad-label">Advertisement</span>
-                    </div>
-                    <div class="pre-roll-countdown-wrap">
-                        <p class="pre-roll-text">Ad</p>
-                        <span class="pre-roll-timer" id="pre-roll-timer">5</span>
-                    </div>
-                    <button class="pre-roll-skip-btn" id="pre-roll-skip-btn" disabled>
-                        Skip <span class="skip-timer">5</span>s
-                    </button>
-                </div>
-            `;
-            document.body.appendChild(overlay);
-        }
-        
-        // Pre-load ads early for stability
-        this.loadAdIntoSlot('pre-roll-ad-slot', { width: 300, height: 250 });
-        this.setupRightBannerAd();
-    },
-    
-    // ── Pre-roll Execution ──
-    async showPreRoll() {
-        // Only show once per session per player instance
-        if (this.sessionData.preRollShown) {
-            return Promise.resolve();
-        }
-        
-        const overlay = document.getElementById('pre-roll-overlay');
-        if (!overlay) return Promise.resolve();
-        
-        overlay.style.display = 'flex';
-        this.sessionData.preRollShown = true;
-        this.sessionData.adCount++;
-        this.saveSession();
-        
-        // Ensure ad is loaded (might have been pre-loaded)
-        this.loadAdIntoSlot('pre-roll-ad-slot', { width: 300, height: 250 });
-        
-        // Start countdown
-        let remaining = this.PRE_ROLL_DURATION;
-        const timerEl = document.getElementById('pre-roll-timer');
-        const countdownEl = document.querySelector('.skip-timer');
-        const skipBtn = document.getElementById('pre-roll-skip-btn');
-        
-        if (timerEl) timerEl.textContent = remaining;
-        if (countdownEl) countdownEl.textContent = remaining;
-        if (skipBtn) skipBtn.disabled = true;
-
-        return new Promise(resolve => {
-            this._preRollResolve = resolve;
-            
-            const countdownInterval = setInterval(() => {
-                remaining--;
-                if (timerEl) timerEl.textContent = remaining;
-                if (countdownEl) countdownEl.textContent = remaining;
-                
-                if (remaining <= 0) {
-                    clearInterval(countdownInterval);
-                    if (skipBtn) skipBtn.disabled = false;
-                    // Auto-close after 1.5 seconds of skip being available for better UX
-                    setTimeout(() => this.closePreRoll(), 1500);
-                }
-            }, 1000);
-            
-            if (skipBtn) {
-                skipBtn.onclick = () => {
-                    clearInterval(countdownInterval);
-                    this.closePreRoll();
-                };
-            }
-
-            // Safety timeout
-            setTimeout(() => {
-                clearInterval(countdownInterval);
-                if (this._preRollResolve) this.closePreRoll();
-            }, 8000);
-        });
-    },
-    
-    closePreRoll() {
-        const overlay = document.getElementById('pre-roll-overlay');
-        if (!overlay) {
-            // Overlay doesn't exist — just resolve immediately
-            if (this._preRollResolve) {
-                this._preRollResolve();
-                this._preRollResolve = null;
-            }
-            return;
-        }
-        
-        overlay.style.opacity = '0';
-        overlay.style.pointerEvents = 'none';
-        
-        setTimeout(() => {
-            overlay.style.display = 'none';
-            overlay.style.opacity = '1';
-            if (this._preRollResolve) {
-                this._preRollResolve();
-                this._preRollResolve = null;
-            }
-        }, 300);
-    },
-    
-    // ── Banner Ad Loading ──
-    loadAdIntoSlot(slotId, dimensions = { width: 300, height: 250 }) {
-        const slot = document.getElementById(slotId);
-        if (!slot) return;
-        
-        // Prevent multiple loads in quick succession
-        if (slot.dataset.loaded === 'true') {
-            console.log(`[AdSystem] Slot ${slotId} already loaded`);
-            return;
-        }
-        
-        slot.dataset.loaded = 'true';
-        
-        // Try Adsterra first
-        if (this.tryAdsterraAd(slot, dimensions)) {
-            return;
-        }
-        
-        // Fallback: placeholder ad
-        this.showFallbackAd(slot, dimensions);
-    },
-    
-    tryAdsterraAd(slot, dimensions) {
-        try {
-            const script1 = document.createElement('script');
-            script1.type = 'text/javascript';
-            script1.innerHTML = `
-                atOptions = {
-                    'key': '${this.ADSTERRA_KEY}',
-                    'format': 'iframe',
-                    'height': ${dimensions.height},
-                    'width': ${dimensions.width},
-                    'params': {}
-                };
-            `;
-            
-            const script2 = document.createElement('script');
-            script2.type = 'text/javascript';
-            script2.src = 'https://www.highperformanceformat.com/' + this.ADSTERRA_KEY + '/invoke.js';
-            
-            // Add with error handling
-            script2.onerror = () => {
-                console.warn('[AdSystem] Adsterra failed, using fallback');
-                slot.innerHTML = '';
-                slot.dataset.loaded = 'false';
-                this.showFallbackAd(slot, dimensions);
-            };
-            
-            slot.appendChild(script1);
-            slot.appendChild(script2);
-            return true;
-        } catch(e) {
-            console.warn('[AdSystem] Adsterra error:', e);
-            return false;
-        }
-    },
-    
-    showFallbackAd(slot, dimensions) {
-        const fallbackHTML = `
-            <div class="fallback-ad" style="
-                width: ${dimensions.width}px;
-                height: ${dimensions.height}px;
-                background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
-                border: 1px solid #444;
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-direction: column;
-                gap: 12px;
-                color: #888;
-                font-size: 0.85rem;
-                text-align: center;
-                padding: 16px;
-                box-sizing: border-box;
-            ">
-                <div style="font-size: 2rem;">🎬</div>
-                <div>
-                    <strong>BOOMFLIX ELITE</strong>
-                    <p style="margin-top: 4px; font-size: 0.75rem; color: #666;">
-                        Go ad-free. Upgrade now.
-                    </p>
-                </div>
-            </div>
-        `;
-        slot.innerHTML = fallbackHTML;
-    },
-    
-    // ── Right-side Banner Setup ──
-    setupRightBannerAd() {
-        const slot = document.getElementById('ad-slot-right-top');
-        if (!slot || slot.dataset.adLoaded === 'true') return;
-        
-        slot.dataset.adLoaded = 'true';
-        this.loadAdIntoSlot('ad-slot-right-top', { width: 300, height: 250 });
-    },
-    
-    // ── Ad Refresh (call after X minutes) ──
-    refreshAds(minSinceLast = 5) {
-        const now = Date.now();
-        const elapsed = (now - this.sessionData.lastAdRefresh) / 1000 / 60;
-        
-        if (elapsed < minSinceLast) {
-            console.log(`[AdSystem] Ad refresh too soon (${elapsed.toFixed(1)}m ago)`);
-            return;
-        }
-        
-        console.log('[AdSystem] Refreshing ads...');
-        this.sessionData.lastAdRefresh = now;
-        this.saveSession();
-        
-        // Reload side banner
-        const sideSlot = document.getElementById('ad-slot-right-top');
-        if (sideSlot) {
-            sideSlot.dataset.adLoaded = 'false';
-            sideSlot.innerHTML = '<span class="pad-label">Advertisement</span>';
-            this.setupRightBannerAd();
-        }
-    },
-    
-    // ── Skip Ad Countdown (right-side banner) ──
-    startSkipAdCountdown() {
-        const btn = document.getElementById('skip-ad-btn');
-        const countdown = document.getElementById('skip-ad-countdown');
-        if (!btn) return;
-        
-        btn.disabled = true;
-        let remaining = 5;
-        if (countdown) countdown.textContent = remaining;
-        
-        clearInterval(this._skipAdTimer);
-        this._skipAdTimer = setInterval(() => {
-            remaining -= 1;
-            if (remaining <= 0) {
-                clearInterval(this._skipAdTimer);
-                if (countdown) countdown.textContent = '›';
-                btn.disabled = false;
-            } else {
-                if (countdown) countdown.textContent = remaining;
-            }
-        }, 1000);
-    },
-    
-    stopSkipAdCountdown() {
-        clearInterval(this._skipAdTimer);
-    },
-};
-
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => AdSystem.init());
-
-// ─── Wrapper functions for backward compatibility ──
-function startSkipAdCountdown() { AdSystem.startSkipAdCountdown(); }
-function stopSkipAdCountdown()  { AdSystem.stopSkipAdCountdown(); }
-
-function skipAd() {
-    stopSkipAdCountdown();
-    const panel = document.getElementById('player-ad-right');
-    const btn   = document.getElementById('skip-ad-btn');
-    if (!panel) return;
-    panel.style.transition = 'width 0.3s ease, min-width 0.3s ease, opacity 0.25s ease';
-    panel.style.opacity    = '0';
-    panel.style.width      = '0';
-    panel.style.minWidth   = '0';
-    panel.style.padding    = '0';
-    panel.style.overflow   = 'hidden';
-    if (btn) btn.style.display = 'none';
-}
-
-// ─── Block embed click-jacking (window.open + location hijack from iframes) ───
-// Embed sources fire window.open() on click to open ad tabs.
-// Overriding window.open in the parent blocks those navigations.
-(function blockEmbedPopups() {
-    const _origOpen = window.open.bind(window);
-    // Known ad/tracker domains to block
-    const AD_DOMAINS = /doubleclick|googlesyndication|adnxs|popads|popcash|exoclick|trafficjunky|propellerads|hilltopads|topcreativeformat/i;
-
-    window.open = function(url, target, features) {
-        // Always allow blank or no URL (embed-internal use)
-        if (!url || url === 'about:blank') return _origOpen(url, target, features);
-        try {
-            const u = new URL(url, location.href);
-            // Block obvious ad networks and popunders
-            if (AD_DOMAINS.test(u.hostname)) return null;
-            // Block _blank popups that aren't same-origin (classic ad redirect pattern)
-            if (target === '_blank' && u.origin !== location.origin) return null;
-            // Allow everything else (embed DRM/token flows, etc.)
-            return _origOpen(url, target, features);
-        } catch(e) {
-            return null;
-        }
-    };
-
-    // Block postMessage attempts to navigate parent
-    window.addEventListener('message', function(e) {
-        if (typeof e.data === 'string' && /location|href|redirect|navigate/i.test(e.data)) return;
-        // Also drop object messages with suspicious keys
-        if (typeof e.data === 'object' && e.data !== null) {
-            const keys = Object.keys(e.data).join('').toLowerCase();
-            if (/redirect|navigate|location|href/.test(keys)) return;
-        }
-    }, true);
-})();
-
 // ─── Premium Source Selector ───────────────────────────────────────────────────
-const SOURCE_NAMES = ['VidSrc CC', 'MultiEmbed', 'VidSrc TO', 'Embed SU', 'VidSrc XYZ'];
-
 function toggleSourceMenu() {
     const btn      = document.getElementById('psrc-menu-btn');
     const dropdown = document.getElementById('psrc-dropdown');
@@ -885,21 +525,15 @@ function toggleSourceMenu() {
 }
 
 function pickSource(index) {
-    // Close menu
     document.getElementById('psrc-dropdown')?.classList.remove('visible');
     document.getElementById('psrc-menu-btn')?.classList.remove('open');
     trySourceAt(index);
 }
 
-// Sync the dropdown UI to reflect current state:
-//   state = 'loading' → orange pulsing dot
-//   state = 'active'  → red dot, row highlighted
 function _syncSourceDropdown(index, state) {
     const label   = document.getElementById('psrc-active-label');
     const options = document.querySelectorAll('.psrc-option');
-
     if (label) label.textContent = SOURCE_NAMES[index] || `Source ${index + 1}`;
-
     options.forEach((opt, i) => {
         opt.classList.remove('active', 'loading');
         if (i === index) {
@@ -908,78 +542,12 @@ function _syncSourceDropdown(index, state) {
     });
 }
 
-// Close source menu when clicking outside
 document.addEventListener('click', function(e) {
     if (!e.target.closest('#psource-wrap')) {
         document.getElementById('psrc-dropdown')?.classList.remove('visible');
         document.getElementById('psrc-menu-btn')?.classList.remove('open');
     }
 }, true);
-// ─── Blur / focus watchdog ─────────────────────────────────────────────────────
-// Distinguishes between:
-//   A) User clicking inside the iframe (normal) — focus returns within 1.2s → ignore
-//   B) Genuine ad redirect — new tab opens, focus never returns → blank + restore
-(function blurWatchdog() {
-    let _blurTimer = null;
-
-    window.addEventListener('blur', function() {
-        const modal = document.getElementById('player-modal');
-        if (!modal || modal.style.display === 'none') return;
-
-        // Do NOT call window.focus() — it interferes with the user clicking
-        // the play button inside the iframe (which needs focus to work).
-        clearTimeout(_blurTimer);
-        _blurTimer = setTimeout(function() {
-            // Only act if the page is actually hidden (genuine new tab redirect).
-            // A user clicking the embed play button returns focus within ~500ms.
-            if (document.hasFocus()) return;
-            if (!document.hidden) return;
-
-            const player = document.getElementById('main-player');
-            if (!player || !currentPlayerMovie) return;
-            const { id, type } = currentPlayerMovie;
-            const urlId = type === 'tv'
-                ? `${id}/${tvState.season}/${tvState.episode}`
-                : String(id);
-            const url = PLAYER_SOURCES[playerSourceIndex](urlId, type);
-            player.src = 'about:blank';
-            setTimeout(function() {
-                if (currentPlayerMovie && currentPlayerMovie.id === id) player.src = url;
-            }, 400);
-        }, 3000);
-    }, true);
-
-    window.addEventListener('focus', function() {
-        clearTimeout(_blurTimer);
-    }, true);
-})();
-
-// ─── beforeunload guard ────────────────────────────────────────────────────────
-// Last line of defence: if something tries to navigate the top page while the
-// player is open, blank the iframe immediately to cut off the redirect source.
-window.addEventListener('beforeunload', function(e) {
-    const modal = document.getElementById('player-modal');
-    if (!modal || modal.style.display === 'none') return;
-    // Attempt to blank the iframe — may not always succeed depending on timing
-    // but cuts off the most common redirect vectors.
-    const player = document.getElementById('main-player');
-    if (player) { try { player.src = 'about:blank'; } catch(err) {} }
-}, true);
-
-// Fullscreen change — no shield to manage, kept for future use
-document.addEventListener('fullscreenchange', _onFullscreenChange);
-document.addEventListener('webkitfullscreenchange', _onFullscreenChange);
-function _onFullscreenChange() { /* shield removed — play button now works */ }
-
-let _sideAdsInjected = false;
-function injectSideAds() {
-    // Deprecated — use AdSystem.setupRightBannerAd() instead
-    console.warn('[DEPRECATED] injectSideAds() — use AdSystem.setupRightBannerAd()');
-}
-
-// Pre-roll is now handled in _doOpenPlayer via AdSystem.showPreRoll()
-function showInterstitialThenPlay(id, type) { _doOpenPlayer(id, type); }
-
 
 // ─── TV Show Episode State ─────────────────────────────────────────────────────
 let tvState = {
@@ -1000,7 +568,6 @@ async function buildEpisodeUI(showId, totalSeasons, initialSeason, initialEp) {
     const episodeSel = document.getElementById('episode-select');
     if (!seasonSel || !episodeSel) return;
 
-    // Populate seasons
     seasonSel.innerHTML = '';
     for (let s = 1; s <= totalSeasons; s++) {
         const opt = document.createElement('option');
@@ -1010,7 +577,6 @@ async function buildEpisodeUI(showId, totalSeasons, initialSeason, initialEp) {
         seasonSel.appendChild(opt);
     }
 
-    // Populate episodes for initial season
     const epCount = await loadSeasonData(showId, initialSeason);
     tvState.maxEpisode = epCount;
     episodeSel.innerHTML = '';
@@ -1042,6 +608,7 @@ async function onSeasonChange() {
         episodeSel.appendChild(opt);
     }
     _updateNavButtons();
+    playerSourceIndex = 0;
     _playTvEpisode();
 }
 
@@ -1050,13 +617,13 @@ function onEpisodeChange() {
     if (!episodeSel) return;
     tvState.episode = Number(episodeSel.value);
     _updateNavButtons();
+    playerSourceIndex = 0;
     _playTvEpisode();
 }
 
 async function navEpisode(dir) {
     const newEp = tvState.episode + dir;
     if (newEp < 1) {
-        // Go to previous season last episode
         if (tvState.season <= 1) return;
         tvState.season--;
         const seasonSel = document.getElementById('season-select');
@@ -1075,7 +642,6 @@ async function navEpisode(dir) {
             }
         }
     } else if (newEp > tvState.maxEpisode) {
-        // Go to next season
         if (tvState.season >= tvState.totalSeasons) return;
         tvState.season++;
         const seasonSel = document.getElementById('season-select');
@@ -1099,6 +665,7 @@ async function navEpisode(dir) {
         if (episodeSel) episodeSel.value = newEp;
     }
     _updateNavButtons();
+    playerSourceIndex = 0;
     _playTvEpisode();
 }
 
@@ -1109,9 +676,10 @@ function _updateNavButtons() {
     if (next) next.disabled = tvState.season >= tvState.totalSeasons && tvState.episode >= tvState.maxEpisode;
 }
 
-function _playTvEpisode() {
+function _playTvEpisode(isRetry = false) {
     if (!currentPlayerMovie) return;
-    const { id } = currentPlayerMovie;
+    const id = tvState.showId || currentPlayerMovie.id;
+    if (!isRetry) playerSourceIndex = 0;
     const url = PLAYER_SOURCES[playerSourceIndex](
         `${id}/${tvState.season}/${tvState.episode}`, 'tv'
     );
@@ -1123,46 +691,56 @@ function _playTvEpisode() {
     clearTimeout(playerTimeout);
     clearTimeout(_playerLoadCooldown);
     if (player) {
-        player.onload = null; player.onerror = null;
-        player.src = 'about:blank';
-        // 600ms grace period — same as _loadPlayerSource
-        _playerLoadCooldown = setTimeout(() => {
-            if (!currentPlayerMovie) return;
-            let _blankFired = false;
-            player.onload = () => {
-                if (!_blankFired) { _blankFired = true; return; }
-                clearTimeout(playerTimeout);
-                if (loader)   loader.style.display = 'none';
-                if (errorBox) errorBox.style.display = 'none';
-            };
-            player.onerror = () => {
-                clearTimeout(playerTimeout);
+        player.onload = () => {
+            clearTimeout(playerTimeout);
+            if (loader)   loader.style.display = 'none';
+            if (errorBox) errorBox.style.display = 'none';
+            _syncSourceDropdown(playerSourceIndex, 'active');
+        };
+        player.onerror = () => {
+            clearTimeout(playerTimeout);
+            if (playerSourceIndex < PLAYER_SOURCES.length - 1) {
+                playerSourceIndex++;
+                _playTvEpisode(true);
+            } else {
                 if (loader)   loader.style.display = 'none';
                 if (errorBox) errorBox.style.display = 'flex';
-            };
-            player.src = url;
-            playerTimeout = setTimeout(() => {
+            }
+        };
+        player.src = url;
+        playerTimeout = setTimeout(() => {
+            if (playerSourceIndex < PLAYER_SOURCES.length - 1) {
+                playerSourceIndex++;
+                _playTvEpisode(true);
+            } else {
+                playerSourceIndex = 0;
                 if (loader)   loader.style.display = 'none';
                 if (errorBox) errorBox.style.display = 'flex';
-            }, 18000);
-        }, 600);
+            }
+        }, 12000);
     }
-    // Update meta label
     const metaEl = document.getElementById('player-meta');
     if (metaEl) metaEl.textContent = `S${tvState.season} · E${tvState.episode}`;
 }
 
-
-// ─── Player ────────────────────────────────────────────────────────────────────
+// ─── PLAYER CORE (SIMPLIFIED - NO BLOCKERS) ───────────────────────────────────
 let playerSourceIndex  = 0;
 let currentPlayerMovie = null;
 let playerTimeout      = null;
 let _playerLoadCooldown = null;
 
-function openPlayer(id, type) { _doOpenPlayer(id, type); }
+function openPlayer(id, type) { 
+    _doOpenPlayer(id, type); 
+}
 
 async function _doOpenPlayer(id, type) {
     const movie = getMovie(id);
+    if (!movie) return;
+
+    // Pause hero rotation while player is open
+    clearInterval(_heroRotationTimer);
+    _heroRotationTimer = null;
+    
     currentPlayerMovie = { id, type, title: movie?.title || movie?.name || 'Now Playing' };
     playerSourceIndex  = 0;
 
@@ -1174,22 +752,22 @@ async function _doOpenPlayer(id, type) {
 
     if (!modal) return;
 
-    // Reset player state immediately
     const player = document.getElementById('main-player');
     if (player) {
         player.onload = null;
         player.onerror = null;
-        player.src = 'about:blank';
     }
 
-    // Show modal
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+
+    // Restore ad column and start skip countdown
+    const adRight = document.getElementById('player-ad-right');
+    if (adRight) adRight.style.display = '';
+    startSkipAdCountdown();
     
-    // Title
     if (titleEl) titleEl.textContent = currentPlayerMovie.title;
 
-    // Info chips (rating, year, genres)
     if (infoRow) {
         const year   = (movie?.release_date || movie?.first_air_date || '').slice(0,4);
         const rating = movie?.vote_average ? `⭐ ${Number(movie.vote_average).toFixed(1)}` : '';
@@ -1197,156 +775,106 @@ async function _doOpenPlayer(id, type) {
             rating && `<span class="pinfo-chip rating">${escHtml(rating)}</span>`,
             year   && `<span class="pinfo-chip">${escHtml(year)}</span>`,
         ].filter(Boolean).join('');
-        // Fetch genre chips asynchronously
-        apiFetch(`${type}/${id}`).then(details => {
-            if (!details || !currentPlayerMovie || currentPlayerMovie.id !== id) return;
-            const genres = (details.genres || []).slice(0,3).map(g =>
-                `<span class="pinfo-chip genre">${escHtml(g.name)}</span>`
-            ).join('');
-            const currentInfoRow = document.getElementById('pinfo-row');
-            if (genres && currentInfoRow) currentInfoRow.innerHTML += genres;
-        });
     }
 
-    // TV show setup
     if (type === 'tv') {
         if (epRow) epRow.style.display = 'flex';
         if (metaEl) metaEl.textContent = 'S1 · E1';
         tvState = { showId: id, totalSeasons: 1, season: 1, episode: 1, maxEpisode: 1 };
-        apiFetch(`tv/${id}`).then(details => {
-            if (!details || !currentPlayerMovie || currentPlayerMovie.id !== id) return;
+        playerSourceIndex = 0;
+        const details = await apiFetch(`tv/${id}`);
+        if (details) {
             tvState.totalSeasons = details.number_of_seasons || 1;
-            buildEpisodeUI(id, tvState.totalSeasons, 1, 1);
-        });
+            await buildEpisodeUI(id, tvState.totalSeasons, 1, 1);
+        }
+        _playTvEpisode(); // ← actually start playing
     } else {
         if (epRow) epRow.style.display = 'none';
         if (metaEl) metaEl.textContent = '';
+        _loadPlayerSource();
     }
-
-    // ── MONETIZATION: Show pre-roll ad before video ──
-    AdSystem.sessionData.currentPlayerId = id;
-    
-    try {
-        await AdSystem.showPreRoll();
-    } catch (err) {
-        console.warn('[AdSystem] Pre-roll error:', err);
-    }
-    
-    // Load side banner ads and start countdown
-    AdSystem.setupRightBannerAd();
-    startSkipAdCountdown();
-    
-    // Finally load the video
-    _loadPlayerSource();
-}
-
-// ─── Player cooldown/grace period system ──────────────────────────────────────
-// Problem: setting iframe src too quickly after blanking it loads the new URL
-// into a dirty state — the previous embed's JS is still running, cookies are
-// still set, and the new stream silently fails or loads a blank screen.
-//
-// Fix: a 3-phase load sequence with grace periods between each phase:
-//   Phase 1 — BLANK  (0ms):    wipe the iframe, detach all handlers
-//   Phase 2 — GRACE  (600ms):  wait for iframe to fully settle on about:blank
-//   Phase 3 — LOAD   (600ms):  inject the real URL only after grace period
-//
-// The 18s timeout only starts AFTER the URL is injected (Phase 3), so we're
-// not burning the clock during the grace period.
-// Auto-advance to next source if timeout fires and sources remain.
-
-// ─── Adaptive timeout for slow connections (West Africa mobile) ───────────────
-// On 2G/3G connections the embed takes much longer to respond.
-// We read the Network Information API if available and give more time on slow links.
-function _getAdaptiveTimeout() {
-    try {
-        const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        if (conn) {
-            const type = conn.effectiveType; // '4g' | '3g' | '2g' | 'slow-2g'
-            if (type === 'slow-2g') return 35000;
-            if (type === '2g')      return 28000;
-            if (type === '3g')      return 22000;
-        }
-    } catch(e) {}
-    return 18000; // default for 4G / unknown
 }
 
 function _loadPlayerSource() {
-    if (!currentPlayerMovie) return;
+    if (!currentPlayerMovie || !currentPlayerMovie.id) return;
+
     const { id, type } = currentPlayerMovie;
-    const player   = document.getElementById('main-player');
-    const loader   = document.getElementById('player-loader');
+    const player = document.getElementById('main-player');
+    const loader = document.getElementById('player-loader');
     const errorBox = document.getElementById('player-error');
 
     if (!player) return;
 
-    // ── Phase 1: BLANK — clear everything immediately ──
     clearTimeout(playerTimeout);
     clearTimeout(_playerLoadCooldown);
-    player.onload  = null;
-    player.onerror = null;
-    try { player.src = 'about:blank'; } catch(e) {}
 
     if (loader)   loader.style.display = 'flex';
     if (errorBox) errorBox.style.display = 'none';
 
-    // Sync premium source dropdown
     _syncSourceDropdown(playerSourceIndex, 'loading');
 
     const urlId = type === 'tv'
         ? `${id}/${tvState.season}/${tvState.episode}`
         : String(id);
+    
     const url = PLAYER_SOURCES[playerSourceIndex](urlId, type);
 
-    // ── Phase 2: GRACE PERIOD — wait for iframe to fully reset ──
-    // 600ms gives the browser time to destroy the previous embed's JS context,
-    // release network connections, and settle cleanly on about:blank.
-    _playerLoadCooldown = setTimeout(() => {
+    console.log('Loading source:', playerSourceIndex, url);
 
-        // Safety check: make sure the user hasn't already closed or changed movie
-        if (!currentPlayerMovie || currentPlayerMovie.id !== id) return;
+    player.onload = () => {
+        console.log('Player loaded successfully');
+        clearTimeout(playerTimeout);
+        if (loader)   loader.style.display = 'none';
+        if (errorBox) errorBox.style.display = 'none';
+        _syncSourceDropdown(playerSourceIndex, 'active');
 
-        // ── Phase 3: LOAD — inject the real URL ──
-        // _blankFired guard: the iframe fires onload once for about:blank as it
-        // settles. We skip that first fire and only act on the real embed load.
-        let _blankFired = false;
-        player.onload = () => {
-            if (!_blankFired) { _blankFired = true; return; } // skip about:blank fire
-            clearTimeout(playerTimeout);
-            if (loader)   loader.style.display = 'none';
-            if (errorBox) errorBox.style.display = 'none';
-            _syncSourceDropdown(playerSourceIndex, 'active'); // mark as playing
-        };
-        player.onerror = () => {
-            clearTimeout(playerTimeout);
-            player.onload = null; player.onerror = null;
+        // Watch for the iframe going blank/broken after load (stream died)
+        _playerLoadCooldown = setTimeout(() => {
+            try {
+                // If iframe src was cleared or navigated away, retry next source
+                if (player.src && !player.src.includes(url.split('/embed')[1]?.split('/')[0] || '___')) return;
+            } catch(e) {}
+        }, 3000);
+    };
+
+    player.onerror = () => {
+        console.log('Player error, trying next source');
+        clearTimeout(playerTimeout);
+        // Auto-advance to next source instead of just showing error
+        if (playerSourceIndex < PLAYER_SOURCES.length - 1) {
+            playerSourceIndex++;
+            _loadPlayerSource();
+        } else {
             if (loader)   loader.style.display = 'none';
             if (errorBox) errorBox.style.display = 'flex';
-        };
+        }
+    };
 
-        // Set the real URL — starts the actual stream load
-        player.src = url;
+    player.src = url;
 
-        // Adaptive timeout: longer on slow mobile connections (2G/3G in West Africa)
-        playerTimeout = setTimeout(() => {
-            player.onload  = null;
-            player.onerror = null;
-            if (loader) loader.style.display = 'none';
-            const isLastSource = playerSourceIndex >= PLAYER_SOURCES.length - 1;
-            if (!isLastSource) {
-                tryNextSource();
-            } else {
-                if (errorBox) errorBox.style.display = 'flex';
-            }
-        }, _getAdaptiveTimeout()); // 18s on 4G, up to 35s on 2G
-
-    }, 600); // ← grace period: 600ms
+    // Timeout: auto-advance to next source, show error only on last
+    playerTimeout = setTimeout(() => {
+        console.log('Source timeout - switching');
+        if (playerSourceIndex < PLAYER_SOURCES.length - 1) {
+            playerSourceIndex++;
+            _loadPlayerSource();
+        } else {
+            // All sources tried — reset and let user pick manually
+            playerSourceIndex = 0;
+            if (loader)   loader.style.display = 'none';
+            if (errorBox) errorBox.style.display = 'flex';
+        }
+    }, 12000);
 }
 
 function tryNextSource() {
     if (!currentPlayerMovie) return;
-    playerSourceIndex = (playerSourceIndex + 1) % PLAYER_SOURCES.length;
-    _loadPlayerSource();
+    if (playerSourceIndex < PLAYER_SOURCES.length - 1) {
+        playerSourceIndex++;
+        _loadPlayerSource();
+    }
 }
+
 function trySourceAt(index) {
     if (!currentPlayerMovie) return;
     playerSourceIndex = index;
@@ -1354,43 +882,44 @@ function trySourceAt(index) {
 }
 
 function closePlayerModal() {
+    // Resume hero rotation if it was running
+    if (_heroMovies.length && !_heroRotationTimer) {
+        _heroRotationTimer = setInterval(_heroAdvance, 8000);
+    }
     clearTimeout(playerTimeout);
     clearTimeout(_playerLoadCooldown);
-    stopTickerAd();
-    stopSkipAdCountdown();
+    
     const modal    = document.getElementById('player-modal');
     const player   = document.getElementById('main-player');
     const loader   = document.getElementById('player-loader');
     const errorBox = document.getElementById('player-error');
     const epRow    = document.getElementById('pepisode-row');
+    
     if (!modal) return;
-    // Blank the iframe FIRST — synchronously — so no redirect can fire
-    // as focus returns to the parent page when the modal hides.
+    
     if (player) {
-        player.onload = null; player.onerror = null;
-        try { player.src = 'about:blank'; } catch(e) {}
+        player.onload = null; 
+        player.onerror = null;
+        player.src = '';
+        player.removeAttribute('src');
     }
+    
+    clearInterval(_skipAdTimer);
+    const adSlot  = document.getElementById('ad-slot-right-top');
+    const skipBtn = document.getElementById('skip-ad-btn');
+    const skipCountdown = document.getElementById('skip-ad-countdown');
+    if (adSlot)  adSlot.style.display  = '';
+    if (skipBtn) { skipBtn.style.display = ''; skipBtn.disabled = true; }
+    if (skipCountdown) skipCountdown.textContent = '5';
+
     modal.style.display = 'none';
-    if (player) {
-        // Belt-and-suspenders: clear again after paint
-        setTimeout(() => { try { player.src = 'about:blank'; } catch(e){} }, 50);
-    }
     if (loader)   loader.style.display = 'flex';
     if (errorBox) errorBox.style.display = 'none';
     if (epRow)    epRow.style.display = 'none';
+    
     currentPlayerMovie = null;
     playerSourceIndex  = 0;
     
-    // Reset ad state so it can re-inject next time the player opens
-    _sideAdsInjected = false;
-    const slot = document.getElementById('ad-slot-right-top');
-    if (slot) slot.innerHTML = '<span class="pad-label">Advertisement</span>';
-
-    // Reset ad panel so it's visible next open
-    const adPanel = document.getElementById('player-ad-right');
-    const skipBtn = document.getElementById('skip-ad-btn');
-    if (adPanel) adPanel.style.cssText = '';
-    if (skipBtn) { skipBtn.style.display = ''; skipBtn.disabled = true; }
     restoreScroll();
 }
 
@@ -1422,21 +951,14 @@ async function surpriseMe() {
     }
 }
 
-// ─── Premium → payment page ───────────────────────────────────────────────────
-// Premium modal — no redirect
+// ─── Premium ──────────────────────────────────────────────────────────────────
 function openPremiumModal() { 
-    if (!currentUser) {
-        openAuthModal();
-    } else {
-        window.location.href = 'payment.html';
-    }
+    window.location.href = 'payment.html';
 }
 
-// Ensure the premium-btn in the navbar uses openPremiumModal
 function setupPremiumBtn() {
     const premiumBtn = document.getElementById('premium-nav-btn');
     if (premiumBtn) {
-        // Hide button if user is already elite
         if (currentUser && currentUser.elite) {
             premiumBtn.style.display = 'none';
         } else {
@@ -1445,33 +967,62 @@ function setupPremiumBtn() {
         }
     }
 }
+
 function closePremiumModal() { closeAuthModal(); }
 
-// ─── Scroll Nav ────────────────────────────────────────────────────────────────
+// ─── Skip Ad ───────────────────────────────────────────────────────────────────
+let _skipAdTimer = null;
+
+function startSkipAdCountdown() {
+    const btn       = document.getElementById('skip-ad-btn');
+    const countdown = document.getElementById('skip-ad-countdown');
+    if (!btn || !countdown) return;
+
+    btn.disabled = true;
+    let secs = 5;
+    countdown.textContent = secs;
+
+    clearInterval(_skipAdTimer);
+    _skipAdTimer = setInterval(() => {
+        secs--;
+        countdown.textContent = secs;
+        if (secs <= 0) {
+            clearInterval(_skipAdTimer);
+            btn.disabled = false;
+            countdown.textContent = '✕';
+        }
+    }, 1000);
+}
+
+function skipAd() {
+    clearInterval(_skipAdTimer);
+    // Hide just the ad slot and skip button, not the whole column
+    const adSlot  = document.getElementById('ad-slot-right-top');
+    const skipBtn = document.getElementById('skip-ad-btn');
+    if (adSlot)  adSlot.style.display  = 'none';
+    if (skipBtn) skipBtn.style.display = 'none';
+}
+
+
 window.addEventListener('scroll', () => {
     document.getElementById('navbar')?.classList.toggle('scrolled', window.scrollY > 50);
 }, { passive: true });
 
 // ─── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
-    // Initialize AdSystem first so ads are pre-loaded
-    if (typeof AdSystem !== 'undefined') AdSystem.init();
-    
     updateAuthUI();
     setupPremiumBtn();
     buildGenreFilters();
     filterByGenre(GENRE_FILTERS[0].url);
     refreshWatchlistRow();
 
-
-
-    // Hero
     apiFetch('trending/all/week').then(data => {
-        const first = data?.results?.find(m => m.backdrop_path);
-        if (first) updateHero(first);
+        const heroMovies = (data?.results || []).filter(m => m.backdrop_path && m.overview).slice(0, 8);
+        if (!heroMovies.length) return;
+        updateHero(heroMovies[0]);
+        startHeroRotation(heroMovies);
     });
 
-    // Category rows — build DOM first then load in parallel
     const wrapper = document.getElementById('categories-wrapper');
     if (wrapper) {
         CATEGORIES.forEach((cat, i) => {
@@ -1486,14 +1037,12 @@ async function init() {
         Promise.allSettled(CATEGORIES.map((cat, i) => loadRowContent(cat.url, `grid-${i}`)));
     }
 
-    // Search — animated placeholder cycles through category names
     const searchInput = document.getElementById('movie-search');
     if (searchInput) {
         searchInput.addEventListener('keydown', e => {
             if (e.key === 'Enter') handleSearch(searchInput.value);
         });
 
-        // Cycle placeholder through category/genre names
         const placeholders = [
             'Search Nollywood movies…',
             'Search Action & Thriller…',
@@ -1507,7 +1056,7 @@ async function init() {
         ];
         let phIndex = 0;
         function rotatePlaceholder() {
-            if (document.activeElement === searchInput) return; // don't change while typing
+            if (document.activeElement === searchInput) return;
             searchInput.style.transition = 'opacity 0.3s';
             searchInput.style.opacity = '0';
             setTimeout(() => {

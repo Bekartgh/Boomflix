@@ -172,23 +172,7 @@
 
 
 
-    <!-- ═══════════════════════════════════════════════════════
-         PRE-ROLL AD OVERLAY — Shown before video starts
-         ═══════════════════════════════════════════════════════ -->
-    <div class="pre-roll-overlay" id="pre-roll-overlay" style="display: none;">
-        <div class="pre-roll-content">
-            <div class="pre-roll-ad-container" id="pre-roll-ad-slot">
-                <span class="pad-label">Advertisement</span>
-            </div>
-            <div class="pre-roll-countdown-wrap">
-                <p class="pre-roll-text">Ad</p>
-                <span class="pre-roll-timer" id="pre-roll-timer">5</span>
-            </div>
-            <button class="pre-roll-skip-btn" id="pre-roll-skip-btn" disabled>
-                Skip <span class="skip-timer">5</span>s
-            </button>
-        </div>
-    </div>
+    <!-- Pre-roll overlay removed -->
 
     <!-- ═══════════════════════════════════════════════════════
          PLAYER MODAL  —  MovieBox-style layout
@@ -291,7 +275,7 @@
                            2. Blur watchdog (catches redirect attempts)
                            3. beforeunload guard (last line of defence)
                          referrerpolicy="no-referrer" still prevents embeds seeing your URL. -->
-                    <iframe id="main-player" src="about:blank" frameborder="0"
+                    <iframe id="main-player" src="" frameborder="0"
                         referrerpolicy="strict-origin-when-cross-origin"
                         allowfullscreen
                         allow="autoplay; encrypted-media; picture-in-picture; fullscreen"></iframe>
@@ -335,6 +319,16 @@
                 <!-- Single 300×250 ad card -->
                 <div class="pad-slot pad-slot--300x250" id="ad-slot-right-top">
                     <span class="pad-label">Advertisement</span>
+                    <script>
+                      atOptions = {
+                        'key' : '6efe268bbe911abbc4a448708e0c098c',
+                        'format' : 'iframe',
+                        'height' : 250,
+                        'width' : 300,
+                        'params' : {}
+                      };
+                    </script>
+                    <script src="https://www.highperformanceformat.com/6efe268bbe911abbc4a448708e0c098c/invoke.js"></script>
                 </div>
                 <!-- Skip Ad button -->
                 <button class="skip-ad-btn" id="skip-ad-btn" onclick="skipAd()" disabled>
