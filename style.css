@@ -636,6 +636,8 @@ body {
     height: 100%;
     overflow: hidden;
     background: #000;
+    position: relative;   /* stacking context so z-index children work */
+    isolation: isolate;
 }
 
 /* ── Top bar ───────────────────────────────────────────────────── */
@@ -646,24 +648,26 @@ body {
     gap: 10px;
 }
 .player-bar--top {
-    background: linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%);
-    border-bottom: none;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
     justify-content: space-between;
     position: absolute;
     top: 0; left: 0; right: 0;
-    z-index: 10;
+    z-index: 100;          /* Increased z-index to ensure it's above everything */
     padding: 14px 18px;
+    pointer-events: auto;  /* Enable pointer events so buttons are clickable */
 }
 .pbar-left {
     display: flex; align-items: center; gap: 12px; min-width: 0;
 }
 .pbar-btn {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.15); /* Increased visibility */
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white; /* Increased visibility */
     border-radius: 6px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.18s; flex-shrink: 0;
+    pointer-events: auto; /* Ensure individual buttons are clickable */
 }
 .pbar-close {
     width: 30px; height: 30px;
@@ -752,10 +756,11 @@ body {
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     gap: 20px;
-    /* Deep cinematic dark with subtle warm tint */
-    background: rgba(5, 3, 3, 0.88);
-    backdrop-filter: blur(28px) saturate(0.6) brightness(0.4);
-    -webkit-backdrop-filter: blur(28px) saturate(0.6) brightness(0.4);
+    /* Reduced opacity and blur for faster perceived loading */
+    background: rgba(5, 3, 3, 0.6);
+    backdrop-filter: blur(10px) saturate(0.8) brightness(0.6);
+    -webkit-backdrop-filter: blur(10px) saturate(0.8) brightness(0.6);
+    transition: opacity 0.3s ease;
 }
 
 /* Subtle vignette gradient on top of the blur */
@@ -766,16 +771,8 @@ body {
     pointer-events: none;
 }
 
-.vstage-spinner {
-    position: relative; z-index: 1;
-    width: 44px; height: 44px;
-    border: 3px solid rgba(255, 255, 255, 0.08);
-    border-top-color: rgba(229, 9, 20, 0.85);
-    border-radius: 50%;
-    animation: spin 0.9s linear infinite;
-    box-shadow: 0 0 18px rgba(229, 9, 20, 0.15);
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+/* Spinner removed as per user request */
+.vstage-spinner { display: none; }
 
 .vstage-loader-text {
     position: relative; z-index: 1;
@@ -817,14 +814,15 @@ body {
 /* ── Bottom bar ────────────────────────────────────────────────── */
 .player-bar--bottom {
     flex-direction: column;
-    background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, transparent 100%);
-    border-top: none;
+    background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.4) 100%);
+    border-top: 1px solid rgba(255,255,255,0.1);
     padding: 20px 18px 14px;
     gap: 10px;
     align-items: stretch;
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    z-index: 10;
+    z-index: 100;          /* Increased z-index to ensure it's above everything */
+    pointer-events: auto;  /* Enable pointer events so buttons are clickable */
 }
 
 /* Episode row */
@@ -852,9 +850,13 @@ body {
 .pselect option { background: #1a1a1a; }
 .pepisode-nav { display: flex; gap: 6px; }
 .pepnav-btn {
-    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
-    color: rgba(255,255,255,0.7); padding: 6px 14px; border-radius: 6px;
+    background: rgba(255,255,255,0.15); /* Increased visibility */
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white; /* Increased visibility */
+    padding: 8px 16px; /* Slightly larger for better clickability */
+    border-radius: 6px;
     font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s;
+    pointer-events: auto;
 }
 .pepnav-btn:hover { background: rgba(255,255,255,0.14); color: white; }
 .pepnav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -1382,4 +1384,441 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* ── Player bar interactive children must capture pointer events ── */
+.player-bar--top > *,
+.player-bar--top .pbar-left,
+.player-bar--top .pbar-right,
+.player-bar--top .pbar-btn,
+.player-bar--top .pbar-title-wrap,
+.player-bar--top .psource-wrap,
+.player-bar--top .psrc-menu-btn,
+.player-bar--top .psrc-dropdown,
+.player-bar--top .psrc-option,
+.player-bar--top .pbar-elite-badge,
+.player-bar--bottom > *,
+.player-bar--bottom .pepisode-row,
+.player-bar--bottom .pepisode-selects,
+.player-bar--bottom .pselect-wrap,
+.player-bar--bottom .pselect,
+.player-bar--bottom .pepisode-nav,
+.player-bar--bottom .pepnav-btn,
+.player-bar--bottom .pinfo-row,
+.player-bar--bottom .pinfo-chip {
+    pointer-events: auto;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE NAVIGATION — Hamburger Menu
+   ══════════════════════════════════════════════════════════════════ */
+
+.hamburger-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    margin-left: auto;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 1100;
+}
+.hamburger-btn span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: white;
+    border-radius: 2px;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    transform-origin: center;
+}
+.hamburger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Mobile slide-down nav drawer */
+.mobile-nav-drawer {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: rgba(10, 10, 10, 0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 1050;
+    padding-top: 70px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    transform: translateY(-100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.mobile-nav-drawer.open {
+    transform: translateY(0);
+}
+.mobile-nav-links {
+    list-style: none;
+    padding: 16px 0 8px;
+}
+.mobile-nav-links li a {
+    display: block;
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 14px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: color 0.2s, background 0.2s;
+    letter-spacing: 0.02em;
+}
+.mobile-nav-links li:last-child a { border-bottom: none; }
+.mobile-nav-links li a:active,
+.mobile-nav-links li a:hover { color: white; background: rgba(255,255,255,0.06); }
+.mobile-nav-actions {
+    display: flex;
+    gap: 10px;
+    padding: 16px 24px 24px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    margin-top: 4px;
+}
+.mobile-nav-actions .login-btn,
+.mobile-nav-actions .premium-btn {
+    flex: 1;
+    text-align: center;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE CORE LAYOUT — ≤ 768px
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+    /* ── Navbar ─────────────────────────────────────────────────── */
+    .navbar { padding: 14px 4%; }
+
+    .nav-content { gap: 0; }
+
+    .logo { font-size: 1.8rem; margin-right: 0; }
+
+    /* Hide desktop nav links and right controls */
+    .nav-links { display: none !important; }
+    .nav-right { display: none !important; }
+
+    /* Show hamburger */
+    .hamburger-btn { display: flex; }
+
+    /* Show mobile drawer */
+    .mobile-nav-drawer { display: block; }
+
+    /* ── Hero ───────────────────────────────────────────────────── */
+    .hero {
+        height: 72vh;
+        min-height: 420px;
+        padding: 0 5%;
+        background-position: center center;
+        align-items: flex-end;
+        padding-bottom: 60px;
+    }
+
+    .hero-vignette {
+        background: linear-gradient(
+            to top,
+            rgba(0,0,0,0.95) 0%,
+            rgba(0,0,0,0.55) 40%,
+            rgba(0,0,0,0.15) 80%,
+            transparent 100%
+        );
+    }
+
+    .hero-content {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .hero-content h1 {
+        font-size: 2rem;
+        line-height: 1.1;
+        margin-bottom: 8px;
+    }
+
+    .hero-badges {
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    .hero-badge { font-size: 0.7rem; padding: 2px 8px; }
+
+    .hero-content p {
+        font-size: 0.88rem;
+        margin-bottom: 16px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .hero-btns {
+        gap: 8px;
+        flex-wrap: nowrap;
+    }
+
+    .btn {
+        padding: 10px 18px;
+        font-size: 0.9rem;
+        flex: 1;
+        justify-content: center;
+        max-width: 160px;
+    }
+
+    .hero-extra { display: none; } /* hide cast row on mobile */
+
+    /* ── Genre Filter Bar ──────────────────────────────────────── */
+    .filter-section { padding: 14px 4% 8px; }
+
+    .genre-filter-bar { gap: 6px; padding-bottom: 10px; }
+    .genre-tab {
+        padding: 5px 14px;
+        font-size: 0.78rem;
+    }
+
+    /* ── Content Container ─────────────────────────────────────── */
+    .content-container {
+        margin-top: -60px;
+        padding-bottom: 30px;
+    }
+
+    /* ── Category Rows ─────────────────────────────────────────── */
+    .category-row { padding: 14px 4%; }
+    .category-row h2 {
+        font-size: 1.05rem;
+        margin-bottom: 8px;
+    }
+
+    /* ── Cards ─────────────────────────────────────────────────── */
+    .card {
+        min-width: 130px;
+        border-radius: 5px;
+    }
+    .loading-shimmer { min-width: 130px; }
+
+    /* Always show card overlay on mobile (no hover) */
+    .card .card-overlay {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .card-title { font-size: 0.72rem; margin-bottom: 6px; }
+    .card-rating, .card-year { font-size: 0.62rem; }
+
+    .card-play-btn {
+        padding: 6px 8px;
+        font-size: 0.7rem;
+    }
+    .watchlist-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 0.85rem;
+    }
+
+    /* ── Auth Modal ─────────────────────────────────────────────── */
+    .auth-card {
+        grid-template-columns: 1fr;
+        width: 94vw;
+        min-height: auto;
+        border-radius: 14px;
+    }
+    .auth-brand-panel { display: none; }
+    .auth-form-panel { padding: 48px 24px 36px; }
+    .auth-form-panel h2 { font-size: 1.5rem; }
+    .close-auth { top: 14px; right: 14px; }
+
+    /* ── Premium Modal ──────────────────────────────────────────── */
+    .premium-card { padding: 28px 20px; border-radius: 12px; }
+    .premium-header h2 { font-size: 1.6rem; }
+    .premium-pricing { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .price-box { padding: 14px; }
+
+    /* ── Player Modal ───────────────────────────────────────────── */
+    .player-modal {
+        align-items: flex-start;
+    }
+    .player-shell {
+        flex-direction: column;
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+    .pside { display: none !important; }
+
+    .player-center {
+        flex-direction: column;
+        height: 100%;
+    }
+
+    /* Shrink top bar */
+    .player-bar--top {
+        padding: 10px 12px;
+    }
+    .pbar-title { font-size: 0.82rem; }
+    .pbar-meta { display: none; }
+    .pbar-elite-badge { display: none; }
+    .pbar-divider { display: none; }
+    .pbar-close { width: 28px; height: 28px; }
+
+    /* Bottom bar */
+    .player-bar--bottom { padding: 14px 12px 10px; }
+
+    /* Episode selectors */
+    .pepisode-row {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    .pepisode-selects { gap: 8px; }
+    .pselect {
+        min-width: 0;
+        width: 100%;
+        font-size: 0.8rem;
+        padding: 8px 28px 8px 10px;
+    }
+    .pepisode-nav {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+    .pepnav-btn {
+        flex: 1;
+        text-align: center;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+
+    /* Info chips */
+    .pinfo-row { gap: 6px; }
+    .pinfo-chip { font-size: 0.66rem; padding: 2px 8px; }
+
+    /* Source selector */
+    .psrc-menu-btn { font-size: 0.7rem; padding: 5px 8px; }
+    .psrc-dropdown { min-width: 180px; }
+
+    /* ── Footer ─────────────────────────────────────────────────── */
+    .site-footer { padding: 36px 5%; }
+    .footer-content {
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+    }
+    .footer-bottom { margin-top: 28px; font-size: 0.75rem; }
+
+    /* ── Toast ──────────────────────────────────────────────────── */
+    #bf-toast {
+        bottom: 20px;
+        font-size: 0.82rem;
+        padding: 9px 18px;
+        max-width: 88vw;
+        white-space: normal;
+        text-align: center;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SMALL PHONES — ≤ 430px
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 430px) {
+
+    .navbar { padding: 12px 4%; }
+    .logo { font-size: 1.65rem; }
+
+    .hero {
+        height: 65vh;
+        min-height: 380px;
+        padding-bottom: 50px;
+    }
+    .hero-content h1 { font-size: 1.75rem; }
+    .hero-content p { font-size: 0.82rem; }
+
+    .btn {
+        padding: 9px 14px;
+        font-size: 0.84rem;
+        max-width: 140px;
+    }
+
+    .card { min-width: 115px; }
+    .loading-shimmer { min-width: 115px; }
+
+    .category-row h2 { font-size: 0.95rem; }
+
+    .footer-content { grid-template-columns: 1fr; gap: 20px; }
+
+    /* Player top bar tighter */
+    .pbar-title { font-size: 0.75rem; max-width: 55vw; }
+    .psource-wrap .psrc-menu-btn { font-size: 0.65rem; padding: 4px 7px; }
+
+    /* Auth padding tighter */
+    .auth-form-panel { padding: 44px 18px 32px; }
+    .auth-form-panel h2 { font-size: 1.35rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TOUCH — improve tap targets site-wide
+   ══════════════════════════════════════════════════════════════════ */
+@media (hover: none) and (pointer: coarse) {
+    /* Larger tap areas for all buttons */
+    .btn, .genre-tab, .card-play-btn, .pepnav-btn,
+    .auth-submit-btn, .cta-btn, .login-btn, .premium-btn {
+        min-height: 44px;
+    }
+
+    /* No hover transform on cards — avoids accidental scale on tap */
+    .card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    /* Use active instead */
+    .card:active {
+        transform: scale(0.97);
+        transition: transform 0.12s ease;
+    }
+
+    /* Ensure card overlay always shows on touch */
+    .card .card-overlay {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Better scroll feel on horizontal rows */
+    .movie-grid, .genre-filter-bar {
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+    }
+    .card, .genre-tab {
+        scroll-snap-align: start;
+    }
+}
+
+/* ── Stability additions ───────────────────────────────────────── */
+/* Offline banner (injected by JS) */
+#bf-offline-banner {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+    background: #b71c1c; color: #fff;
+    text-align: center; padding: 10px 20px;
+    font-size: 0.88rem; font-weight: 600;
+    letter-spacing: 0.02em;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* Pending rows (waiting for reconnect) */
+.category-row[data-pending] .movie-grid {
+    opacity: 0.45;
+}
+
+/* Empty / error messages in grids */
+.empty-msg {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    padding: 20px 10px;
+    grid-column: 1/-1;
 }

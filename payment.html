@@ -422,6 +422,13 @@
 
 <script>
     let selectedPlan = 'yearly';
+    let _paymentInProgress = false;
+
+    // Global error guard
+    window.onerror = function(msg, src, line, col, err) {
+        console.error('[BOOMFLIX payment] Error:', msg, err);
+        return false;
+    };
 
     function selectPlan(plan) {
         selectedPlan = plan;
@@ -458,9 +465,12 @@
     });
 
     function processPayment() {
+        if (_paymentInProgress) return; // prevent double-submit
+        _paymentInProgress = true;
         const btn = document.getElementById('pay-btn');
         const text = document.getElementById('btn-text');
         const spinner = document.getElementById('btn-spinner');
+        if (!btn || !text || !spinner) return;
         btn.disabled = true;
         text.style.display = 'none';
         spinner.style.display = 'block';
@@ -471,19 +481,26 @@
             btn.disabled = false;
             // Mark user as elite in localStorage
             try {
-                const rawUser = localStorage.getItem('boomflix_user');
-                let user;
-                if (rawUser) {
-                    user = JSON.parse(rawUser);
-                } else {
-                    // If no user exists, create a guest elite user
+                let user = null;
+                try { user = JSON.parse(localStorage.getItem('boomflix_user') || 'null'); } catch(e) {}
+                if (!user || typeof user !== 'object') {
+                    // No user exists — create a guest elite user
                     user = { name: 'Guest Elite', email: 'guest@boomflix.com' };
                 }
                 user.elite = true;
                 user.plan = selectedPlan;
-                localStorage.setItem('boomflix_user', JSON.stringify(user));
-            } catch(e) {}
-            document.getElementById('success-overlay').classList.add('show');
+                user.eliteActivated = Date.now();
+                try { localStorage.setItem('boomflix_user', JSON.stringify(user)); } catch(e) {
+                    console.warn('[BOOMFLIX] Could not save elite status:', e);
+                }
+                // Notify main window if opened via window.open
+                if (window.opener && !window.opener.closed) {
+                    try { window.opener.postMessage({ type: 'BOOMFLIX_ELITE_UPDATE', user: user }, location.origin || '*'); } catch(e) {}
+                }
+            } catch(e) { console.error('[BOOMFLIX] processPayment error:', e); }
+            const overlay = document.getElementById('success-overlay');
+            if (overlay) overlay.classList.add('show');
+            _paymentInProgress = false;
         }, 2400);
     }
 </script>

@@ -52,8 +52,32 @@
                     <button class="login-btn" onclick="openAuthModal()">LOG IN</button>
                 </div>
             </div>
+            <!-- Hamburger — mobile only -->
+            <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </nav>
+
+    <!-- Mobile nav drawer -->
+    <div class="mobile-nav-drawer" id="mobile-nav-drawer" aria-hidden="true">
+        <ul class="mobile-nav-links">
+            <li><a href="#" onclick="closeMobileNav();location.reload()">🏠 Home</a></li>
+            <li><a href="#main-content" onclick="closeMobileNav()">📺 TV Shows</a></li>
+            <li><a href="#main-content" onclick="closeMobileNav()">🎬 Movies</a></li>
+            <li><a href="#main-content" onclick="closeMobileNav()">🔥 New &amp; Popular</a></li>
+        </ul>
+        <div class="mobile-nav-actions">
+            <button class="login-btn" onclick="closeMobileNav();openAuthModal()">LOG IN</button>
+            <button class="premium-btn" id="mobile-premium-btn" onclick="closeMobileNav()">GET ELITE</button>
+        </div>
+        <div style="padding: 0 24px 20px;">
+            <div class="search-box" style="width:100%; border-radius:8px; padding:10px 14px;">
+                <i data-lucide="search" size="18"></i>
+                <input type="text" id="movie-search-mobile" placeholder="Search movies, shows…" autocomplete="off" style="width:100%;">
+            </div>
+        </div>
+    </div>
 
     <!-- Hero -->
     <header class="hero" id="hero-section">
@@ -369,5 +393,58 @@
 
     <script src="app.js"></script>
     <script>lucide.createIcons();</script>
+
+    <!-- Mobile hamburger nav -->
+    <script>
+    (function() {
+        var btn = document.getElementById('hamburger-btn');
+        var drawer = document.getElementById('mobile-nav-drawer');
+        var mobilePremiumBtn = document.getElementById('mobile-premium-btn');
+
+        function openMobileNav() {
+            btn.classList.add('open');
+            drawer.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+            drawer.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+        window.closeMobileNav = function() {
+            btn.classList.remove('open');
+            drawer.classList.remove('open');
+            btn.setAttribute('aria-expanded', 'false');
+            drawer.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        };
+        if (btn) {
+            btn.addEventListener('click', function() {
+                if (drawer.classList.contains('open')) { closeMobileNav(); }
+                else { openMobileNav(); }
+            });
+        }
+        // Mirror mobile search to desktop search
+        var mSearch = document.getElementById('movie-search-mobile');
+        var dSearch = document.getElementById('movie-search');
+        if (mSearch && dSearch) {
+            mSearch.addEventListener('input', function() {
+                dSearch.value = this.value;
+                dSearch.dispatchEvent(new Event('input'));
+            });
+        }
+        // Mirror premium btn click
+        if (mobilePremiumBtn) {
+            mobilePremiumBtn.addEventListener('click', function() {
+                var premiumNavBtn = document.getElementById('premium-nav-btn');
+                if (premiumNavBtn) premiumNavBtn.click();
+            });
+        }
+        // Close drawer on backdrop tap
+        document.addEventListener('click', function(e) {
+            if (drawer && drawer.classList.contains('open') &&
+                !drawer.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+                closeMobileNav();
+            }
+        });
+    })();
+    </script>
 </body>
 </html>
